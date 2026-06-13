@@ -39,6 +39,10 @@ struct AfSync {
     Addr leaderAddr{};
     double offset = 0;
 
+    // Estéreo entre aparelhos.
+    bool stereo = false;
+    int channel = CH_BOTH; // canal deste aparelho
+
     double clk() const { return monotonicNow() + theta; }
 
     void serveLoop() {
@@ -87,6 +91,9 @@ void af_sync_destroy(AfSync* s) {
 
 double af_sync_now(void) { return monotonicNow(); }
 
+void af_sync_set_stereo(AfSync* s, int enabled) { s->stereo = enabled != 0; }
+int  af_sync_channel(AfSync* s) { return s->channel; }
+
 int af_sync_start_leader(AfSync* s) {
     if (!s->data.open() || !s->data.bindPort(0)) return -1;
     if (!s->ann.open()) return -1;
@@ -104,11 +111,16 @@ int af_sync_follower_count(AfSync* s) {
 
 double af_sync_leader_play(AfSync* s, double leadSeconds, double outputLatency) {
     double leaderStart = s->clk() + leadSeconds;
-    Packet pl{}; pl.type = MSG_PLAY; pl.a = leaderStart;
     {
         std::lock_guard<std::mutex> lk(s->mtx);
-        for (auto& f : s->followers) s->data.sendTo(&pl, sizeof(pl), f);
+        // Estéreo: líder = esquerda; seguidores alternam direita/esquerda.
+        for (size_t i = 0; i < s->followers.size(); ++i) {
+            Packet pl{}; pl.type = MSG_PLAY; pl.a = leaderStart;
+            pl.b = s->stereo ? (double)((i % 2 == 0) ? CH_RIGHT : CH_LEFT) : (double)CH_BOTH;
+            s->data.sendTo(&pl, sizeof(pl), s->followers[i]);
+        }
     }
+    s->channel = s->stereo ? CH_LEFT : CH_BOTH;
     return (leaderStart - s->theta) - outputLatency; // instante monotônico p/ iniciar
 }
 
@@ -163,6 +175,7 @@ double af_sync_wait_play(AfSync* s, double outputLatency, int timeoutMs) {
         Packet r; Addr from;
         if (s->fsock.recv(&r, sizeof(r), from, 200) == (int)sizeof(r) &&
             r.type == MSG_PLAY) {
+            s->channel = (int)r.b; // canal estéreo atribuído pelo líder
             double localStart = sync::followerLocalStart(r.a, s->offset, outputLatency);
             return localStart - s->theta; // instante monotônico p/ iniciar
         }

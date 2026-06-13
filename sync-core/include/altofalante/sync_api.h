@@ -24,6 +24,14 @@ void    af_sync_destroy(AfSync* s);
 /* Relógio monotônico compartilhado (segundos) — base do agendamento. */
 double af_sync_now(void);
 
+/* Canais para estéreo entre aparelhos (espelha protocol.h). */
+enum { AF_CH_BOTH = 0, AF_CH_LEFT = 1, AF_CH_RIGHT = 2 };
+
+/* Liga/desliga o modo estéreo (líder distribui L/R entre os aparelhos). */
+void   af_sync_set_stereo(AfSync* s, int enabled);
+/* Canal atribuído a ESTE aparelho (após play/wait). Ver AF_CH_*. */
+int    af_sync_channel(AfSync* s);
+
 /* ---- LÍDER ---- */
 /* Começa a anunciar (multicast) e atender sondas, em thread interna. 0 = ok. */
 int    af_sync_start_leader(AfSync* s);

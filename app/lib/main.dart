@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -32,7 +33,28 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _trackName;
   DspPreset _preset = DspPreset.balanced;
   SyncRole _role = SyncRole.none;
-  String? _groupInfo;
+  bool _stereo = false;
+  int _channel = 0;
+  int _followerCount = 0;
+  Timer? _countTimer;
+
+  @override
+  void dispose() {
+    _countTimer?.cancel();
+    super.dispose();
+  }
+
+  String? _transient; // mensagem temporária (ex.: "Procurando…")
+
+  // Texto de status do grupo.
+  String? get _groupInfo {
+    if (_transient != null) return _transient;
+    if (_role == SyncRole.none) return null;
+    final ch = channelLabel(_channel);
+    final tag = ch.isEmpty ? '' : ' · $ch';
+    if (_role == SyncRole.leader) return 'Comando · $_followerCount conectado(s)$tag';
+    return 'Conectado$tag';
+  }
 
   @override
   void initState() {
@@ -66,9 +88,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_playing) {
       await _engine.pause();
     } else if (_role == SyncRole.leader) {
-      await _sync.playSynced(); // líder dispara o início em todos juntos
+      await _sync.playSynced();        // líder dispara o início em todos juntos
+      _channel = await _sync.channel();
     } else {
-      await _engine.play();     // follower inicia sozinho ou pelo líder
+      await _engine.play();            // follower inicia sozinho ou pelo líder
     }
     setState(() => _playing = !_playing);
   }
@@ -81,60 +104,43 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Brand.surface,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('Tocar junto com outros celulares',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
-            const Text('Todos na mesma Wi-Fi. Um vira o comando, os outros entram.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Brand.muted, fontSize: 13)),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: () { Navigator.pop(context); _createGroup(); },
-              icon: const Icon(Icons.podcasts),
-              label: const Text('Criar grupo (sou o comando)'),
-              style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () { Navigator.pop(context); _joinGroup(); },
-              icon: const Icon(Icons.wifi_find),
-              label: const Text('Entrar num grupo'),
-              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 52)),
-            ),
-          ],
-        ),
+      builder: (_) => _SyncSheet(
+        initialStereo: _stereo,
+        onCreate: (stereo) { Navigator.pop(context); _createGroup(stereo); },
+        onJoin: () { Navigator.pop(context); _joinGroup(); },
       ),
     );
   }
 
-  Future<void> _createGroup() async {
+  Future<void> _createGroup(bool stereo) async {
+    _stereo = stereo;
+    await _sync.setStereo(stereo);
     await _sync.createGroup();
-    setState(() { _role = SyncRole.leader; _groupInfo = 'Você é o comando'; });
-  }
-
-  Future<void> _joinGroup() async {
-    setState(() => _groupInfo = 'Procurando na rede…');
-    final res = await _sync.joinGroup();
-    setState(() {
-      if (res['ok'] == true) {
-        _role = SyncRole.follower;
-        _groupInfo = 'Conectado a ${res['leader'] ?? 'um comando'}';
-      } else {
-        _groupInfo = 'Nenhum grupo encontrado';
-      }
+    setState(() { _role = SyncRole.leader; _transient = null; _channel = 0; });
+    _countTimer?.cancel();
+    _countTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      final c = await _sync.followerCount();
+      if (mounted) setState(() => _followerCount = c);
     });
   }
 
+  Future<void> _joinGroup() async {
+    setState(() => _transient = 'Procurando na rede…');
+    final res = await _sync.joinGroup();
+    if (res['ok'] == true) {
+      final ch = await _sync.channel();
+      setState(() { _role = SyncRole.follower; _transient = null; _channel = ch; });
+    } else {
+      setState(() => _transient = 'Nenhum grupo encontrado');
+    }
+  }
+
   Future<void> _leaveGroup() async {
+    _countTimer?.cancel();
     await _sync.leave();
-    setState(() { _role = SyncRole.none; _groupInfo = null; });
+    setState(() {
+      _role = SyncRole.none; _transient = null; _channel = 0; _followerCount = 0;
+    });
   }
 
   Future<void> _toggleTurbo() async {
@@ -170,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 20),
               _MultiDeviceLink(
                   info: _groupInfo,
-                  active: _role != SyncRole.none,
+                  active: _role != SyncRole.none || _transient != null,
                   onTap: _openSyncSheet,
                   onLeave: _leaveGroup),
               const Spacer(),
@@ -439,6 +445,63 @@ class _MultiDeviceLink extends StatelessWidget {
           style: TextStyle(color: Brand.accent, fontWeight: FontWeight.w700)),
     );
   }
+}
+
+/// Folha "tocar junto": toggle de estéreo + criar/entrar.
+class _SyncSheet extends StatefulWidget {
+  const _SyncSheet(
+      {required this.initialStereo, required this.onCreate, required this.onJoin});
+  final bool initialStereo;
+  final ValueChanged<bool> onCreate;
+  final VoidCallback onJoin;
+  @override
+  State<_SyncSheet> createState() => _SyncSheetState();
+}
+
+class _SyncSheetState extends State<_SyncSheet> {
+  late bool _stereo = widget.initialStereo;
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Tocar junto com outros celulares',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            const Text('Todos na mesma Wi-Fi. Um vira o comando, os outros entram.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Brand.muted, fontSize: 13)),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              value: _stereo,
+              onChanged: (v) => setState(() => _stereo = v),
+              activeColor: Brand.accent,
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Modo estéreo',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: const Text('cada celular vira um lado (esquerdo/direito)',
+                  style: TextStyle(color: Brand.muted, fontSize: 12)),
+            ),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed: () => widget.onCreate(_stereo),
+              icon: const Icon(Icons.podcasts),
+              label: const Text('Criar grupo (sou o comando)'),
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: widget.onJoin,
+              icon: const Icon(Icons.wifi_find),
+              label: const Text('Entrar num grupo'),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 52)),
+            ),
+          ],
+        ),
+      );
 }
 
 class _PlayerControls extends StatelessWidget {

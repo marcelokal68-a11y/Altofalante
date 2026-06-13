@@ -28,6 +28,8 @@ class MainActivity : FlutterActivity() {
     private external fun nativeSyncCreateLeader()
     private external fun nativeSyncFollowerCount(): Int
     private external fun nativeSyncLeaderPlay()
+    private external fun nativeSyncSetStereo(enabled: Boolean)
+    private external fun nativeSyncChannel(): Int
     private external fun nativeSyncJoin(): Int
     private external fun nativeSyncLeaderEndpoint(): String
     private external fun nativeSyncWaitPlayOnce(): Double
@@ -68,6 +70,8 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "createGroup" -> { nativeSyncCreateLeader(); result.success(null) }
                     "followerCount" -> result.success(nativeSyncFollowerCount())
+                    "setStereo" -> { nativeSyncSetStereo(call.argument<Boolean>("enabled") ?: false); result.success(null) }
+                    "channel" -> result.success(nativeSyncChannel())
                     "playSynced" -> { nativeSyncLeaderPlay(); result.success(null) }
                     "leave" -> { nativeSyncLeave(); result.success(null) }
                     "joinGroup" -> thread {

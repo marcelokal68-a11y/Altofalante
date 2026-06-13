@@ -10,8 +10,8 @@ RES="$(mktemp)"
 
 [ -x "$BIN" ] || { echo "compile primeiro: cmake --build build"; exit 1; }
 
-# Lider (theta=0, espera 3 seguidores). Sem porta: anuncia por multicast.
-"$BIN" leader 3 0.0 &
+# Lider (theta=0, espera 3 seguidores, modo estereo). Anuncia por multicast.
+"$BIN" leader 3 0.0 stereo &
 LPID=$!
 sleep 0.3
 

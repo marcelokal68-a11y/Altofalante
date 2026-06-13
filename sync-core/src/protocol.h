@@ -10,8 +10,15 @@ enum : uint8_t {
     MSG_HELLO       = 1, // seguidor -> lider: "estou aqui, me registre"
     MSG_PROBE       = 2, // seguidor -> lider: sonda de sincronizacao (a = t0)
     MSG_PROBE_REPLY = 3, // lider -> seguidor: a=t0, b=t1(recv), c=t2(send)
-    MSG_PLAY        = 4, // lider -> seguidor: a = instante de inicio (relogio do lider)
+    MSG_PLAY        = 4, // lider -> seguidor: a=inicio(relogio lider), b=canal estereo
     MSG_ANNOUNCE    = 5, // lider -> grupo multicast: a = porta de dados (descoberta)
+};
+
+// Atribuicao de canal para estereo entre aparelhos (campo `b` do MSG_PLAY).
+enum : int {
+    CH_BOTH  = 0, // toca os dois canais (mono reforcado)
+    CH_LEFT  = 1, // este aparelho e o canal esquerdo
+    CH_RIGHT = 2, // este aparelho e o canal direito
 };
 
 // Descoberta estilo mDNS (multicast). No prototipo usamos a interface de loopback

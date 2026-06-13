@@ -16,6 +16,7 @@ final class AudioEngineBridge {
     private var readIndex: Int = 0
     private var playing = false
     private var channels = 2
+    var channel = 0   // 0=ambos, 1=esquerda, 2=direita (estéreo entre aparelhos)
 
     private var dsp: OpaquePointer?            // AfEngine*
     private var scratch: UnsafeMutablePointer<Float>?
@@ -105,10 +106,12 @@ final class AudioEngineBridge {
         }
         af_process(dsp, scratch!, Int32(avail))
 
-        // desintercala scratch -> buffers de saída
+        // desintercala scratch -> buffers de saída.
+        // No modo estéreo, este aparelho emite só o canal atribuído (L ou R).
         for (c, b) in out.enumerated() where c < ch {
             let dst = b.mData!.assumingMemoryBound(to: Float.self)
-            for i in 0..<avail { dst[i] = scratch![i * ch + c] }
+            let sc = channel == 1 ? 0 : (channel == 2 ? min(1, ch - 1) : c)
+            for i in 0..<avail { dst[i] = scratch![i * ch + sc] }
             if avail < n { for i in avail..<n { dst[i] = 0 } } // silêncio no fim
         }
         readIndex += avail

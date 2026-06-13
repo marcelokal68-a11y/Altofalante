@@ -35,6 +35,11 @@ public:
         if (n < numFrames)
             std::memset(out + (size_t)n * ch, 0, sizeof(float) * (numFrames - n) * ch);
         af_process(dsp_, out, n); // turbina o bloco antes de sair
+        // Estéreo entre aparelhos: emite só o canal atribuído (L ou R).
+        if (ch == 2 && channel_ != 0) {
+            int sc = (channel_ == 2) ? 1 : 0;
+            for (int i = 0; i < n; ++i) { out[i*2] = out[i*2 + sc]; out[i*2 + 1] = out[i*2 + sc]; }
+        }
         return oboe::DataCallbackResult::Continue;
     }
 
@@ -64,6 +69,7 @@ public:
     }
     void setEnabled(bool on) { af_set_enabled(dsp_, on ? 1 : 0); }
     void setPreset(AfPreset p) { af_set_preset(dsp_, p); }
+    void setChannel(int c) { std::lock_guard<std::mutex> lk(mtx_); channel_ = c; }
 
 private:
     void openStream() {
@@ -85,6 +91,7 @@ private:
     std::vector<float> pcm_;
     size_t readIndex_ = 0;
     int channels_ = 2, sampleRate_ = 48000;
+    int channel_ = 0; // 0=ambos, 1=esquerda, 2=direita
     bool playing_ = false;
     AfEngine* dsp_ = nullptr;
     std::mutex mtx_;
@@ -149,9 +156,20 @@ Java_com_altofalante_app_MainActivity_nativeSyncFollowerCount(JNIEnv*, jobject) 
 }
 
 JNIEXPORT void JNICALL
+Java_com_altofalante_app_MainActivity_nativeSyncSetStereo(JNIEnv*, jobject, jboolean on) {
+    if (g_sync) af_sync_set_stereo(g_sync, on == JNI_TRUE);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_altofalante_app_MainActivity_nativeSyncChannel(JNIEnv*, jobject) {
+    return g_sync ? af_sync_channel(g_sync) : 0;
+}
+
+JNIEXPORT void JNICALL
 Java_com_altofalante_app_MainActivity_nativeSyncLeaderPlay(JNIEnv*, jobject) {
     if (!g_sync) return;
     double fire = af_sync_leader_play(g_sync, 0.8, kOutputLatency);
+    g_player.setChannel(af_sync_channel(g_sync));
     g_player.playAt(fire);
 }
 
@@ -175,7 +193,7 @@ JNIEXPORT jdouble JNICALL
 Java_com_altofalante_app_MainActivity_nativeSyncWaitPlayOnce(JNIEnv*, jobject) {
     if (!g_sync) return -1;
     double fire = af_sync_wait_play(g_sync, kOutputLatency, 60000);
-    if (fire >= 0) g_player.playAt(fire);
+    if (fire >= 0) { g_player.setChannel(af_sync_channel(g_sync)); g_player.playAt(fire); }
     return fire;
 }
 

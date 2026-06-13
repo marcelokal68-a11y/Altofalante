@@ -16,8 +16,13 @@
 #include <string>
 #include <unistd.h>
 
-static int runLeader(int expected, double theta) {
+static const char* chName(int c) {
+    return c == AF_CH_LEFT ? "ESQ" : c == AF_CH_RIGHT ? "DIR" : "AMBOS";
+}
+
+static int runLeader(int expected, double theta, bool stereo) {
     AfSync* s = af_sync_create(theta, nullptr);
+    af_sync_set_stereo(s, stereo ? 1 : 0);
     if (af_sync_start_leader(s) != 0) { fprintf(stderr, "leader: falha\n"); return 1; }
     printf("leader: anunciando (theta=%.3f), esperando %d seguidores...\n", theta, expected);
 
@@ -30,8 +35,8 @@ static int runLeader(int expected, double theta) {
     }
 
     double fire = af_sync_leader_play(s, 0.8, 0.0); // latencia 0 no teste
-    printf("leader: PLAY enviado (%d seguidores), inicio monotonico=%.6f\n",
-           af_sync_follower_count(s), fire);
+    printf("leader: PLAY enviado (%d seguidores) canal=%s, inicio monotonico=%.6f\n",
+           af_sync_follower_count(s), chName(af_sync_channel(s)), fire);
     usleep(2000000);
     af_sync_destroy(s);
     return 0;
@@ -57,7 +62,8 @@ static int runFollower(double theta, double latency, const std::string& resultFi
 
     FILE* f = fopen(resultFile.c_str(), "a");
     if (f) { fprintf(f, "%.9f\n", emit); fclose(f); }
-    printf("follower theta=%+.3f lat=%.3f emit=%.9f\n", theta, latency, emit);
+    printf("follower theta=%+.3f lat=%.3f canal=%s emit=%.9f\n",
+           theta, latency, chName(af_sync_channel(s)), emit);
     af_sync_destroy(s);
     return 0;
 }
@@ -66,7 +72,8 @@ int main(int argc, char** argv) {
     if (argc < 2) { fprintf(stderr, "uso: sync_node leader|follower ...\n"); return 1; }
     std::string role = argv[1];
     if (role == "leader" && argc >= 4)
-        return runLeader(atoi(argv[2]), atof(argv[3]));
+        return runLeader(atoi(argv[2]), atof(argv[3]),
+                         argc >= 5 && std::string(argv[4]) == "stereo");
     if (role == "follower" && argc >= 6)
         return runFollower(atof(argv[2]), atof(argv[3]), argv[4]);
     fprintf(stderr,

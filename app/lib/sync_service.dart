@@ -29,6 +29,14 @@ class SyncService {
   /// (Líder) dispara o início sincronizado em todos os aparelhos do grupo.
   Future<void> playSynced() => _ch.invokeMethod('playSynced');
 
+  /// Liga/desliga o modo estéreo (cada celular vira um canal L/R).
+  Future<void> setStereo(bool on) => _ch.invokeMethod('setStereo', {'enabled': on});
+
+  /// Canal deste aparelho: 0=ambos, 1=esquerda, 2=direita.
+  Future<int> channel() async => (await _ch.invokeMethod<int>('channel')) ?? 0;
+
   /// Sai do grupo.
   Future<void> leave() => _ch.invokeMethod('leave');
 }
+
+String channelLabel(int c) => c == 1 ? 'ESQ' : c == 2 ? 'DIR' : '';

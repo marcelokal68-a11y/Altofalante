@@ -41,9 +41,12 @@ import AVFoundation
                                                binaryMessenger: controller.binaryMessenger)
         let sync = SyncController.shared
         syncChannel.setMethodCallHandler { call, result in
+            let args = call.arguments as? [String: Any]
             switch call.method {
             case "createGroup":    sync.createGroup(); result(nil)
             case "followerCount":  result(sync.followerCount())
+            case "setStereo":      sync.setStereo((args?["enabled"] as? Bool) ?? false); result(nil)
+            case "channel":        result(sync.channel())
             case "playSynced":     sync.playSynced(); result(nil)
             case "joinGroup":      sync.joinGroup { ok, info in result(["ok": ok, "leader": info]) }
             case "leave":          sync.leave(); result(nil)

@@ -15,12 +15,16 @@ final class SyncController {
         af_sync_start_leader(sync)
     }
 
+    func setStereo(_ on: Bool) { af_sync_set_stereo(sync, on ? 1 : 0) }
+    func channel() -> Int { Int(af_sync_channel(sync)) }
+
     func followerCount() -> Int { Int(af_sync_follower_count(sync)) }
 
     /// (Líder) dispara o início sincronizado e agenda o próprio áudio.
     func playSynced() {
         guard let s = sync else { return }
         let fire = af_sync_leader_play(s, 0.8, outputLatency)
+        AudioEngineBridge.shared.channel = Int(af_sync_channel(s))
         AudioEngineBridge.shared.playAt(fire)
     }
 
@@ -47,7 +51,10 @@ final class SyncController {
         DispatchQueue.global(qos: .userInteractive).async {
             while self.sync == s {
                 let fire = af_sync_wait_play(s, self.outputLatency, 60_000)
-                if fire >= 0 { AudioEngineBridge.shared.playAt(fire) }
+                if fire >= 0 {
+                    AudioEngineBridge.shared.channel = Int(af_sync_channel(s))
+                    AudioEngineBridge.shared.playAt(fire)
+                }
             }
         }
     }

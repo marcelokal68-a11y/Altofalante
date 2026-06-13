@@ -57,6 +57,8 @@ defasagem < 10 ms em LAN.
 - [x] **Integração do sync no app:** API C (`sync-core/sync_api.h`), serviço Dart
       (`app/lib/sync_service.dart`) + UX "tocar junto", e ponte nativa
       (`SyncController.swift` / `nativeSync*` no Android) que agenda o início junto.
+- [x] **Refinos:** modo **estéreo** (cada celular vira um canal L/R, com downmix no
+      player nativo) e **contador de aparelhos conectados ao vivo** no app.
 **Critério de saída:** build instalável; teste A/B audível no speaker real; sync entre
 2 aparelhos físicos.
 

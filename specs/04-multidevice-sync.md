@@ -45,6 +45,8 @@ um sistema de som maior. É o único caminho para aumentar o volume **físico re
   latência (`scheduler.cpp`) e camada UDP POSIX (`net.cpp`) — portátil p/ iOS/Android.
 - **Descoberta por multicast** (estilo mDNS): o líder anuncia em `239.255.42.99:45200`
   com sua porta de dados; o seguidor descobre o endereço sozinho (sem IP fixo).
+- **Estéreo entre aparelhos:** o líder atribui canal (L/R) a cada aparelho no PLAY;
+  cada um emite só o seu lado. API: `af_sync_set_stereo` / `af_sync_channel`.
 - `sync_node` roda como **líder** ou **seguidor**: descobre, sondagem + PLAY por UDP real.
 - Medição local (`tools/sync_net_test.sh`): 3 nós descobrem e sincronizam a ~0.01 ms.
 - **Falta para o device:**
