@@ -29,6 +29,14 @@ public:
     /// Retorna bytes recebidos, 0 em timeout, -1 em erro. Preenche `from`.
     int  recv(void* buf, size_t len, Addr& from, int timeoutMs);
 
+    uint16_t localPort();              // porta efetivamente vinculada
+
+    // --- multicast (descoberta) ---
+    bool joinMulticast(const std::string& group, uint16_t port,
+                       const std::string& iface);  // listener
+    bool setMulticastIface(const std::string& iface); // sender
+    bool enableMulticastLoop();
+
     static Addr makeAddr(const std::string& host, uint16_t port);
 
 private:

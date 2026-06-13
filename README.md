@@ -75,10 +75,11 @@ test-audio/   # amostras geradas (gitignored)
 ## Roadmap
 
 - **Fase 1 — DSP + prova de valor** ✅ — loudness +5 a +6.8 LU sem clipping.
-- **Fase 2 — Multi-celular sincronizado** ✅ protótipo — **3 ms** na simulação com
-  jitter (`./build/sync-core/sync_sim`) e **0.01 ms** sobre **rede UDP real** entre 3
-  nós (`bash tools/sync_net_test.sh`), mesmo com relógios dessincronizados em dezenas
-  de segundos. Falta só a descoberta mDNS para o device.
+- **Fase 2 — Multi-celular sincronizado** ✅ protótipo completo — **descoberta
+  automática** (multicast estilo mDNS, sem IP fixo) + sync de relógio + compensação de
+  latência sobre **rede UDP real**: 3 nós sincronizam a **~0.01 ms**
+  (`bash tools/sync_net_test.sh`), mesmo com relógios dessincronizados em dezenas de
+  segundos. Falta só apontar para a interface Wi-Fi no device.
 - **Fase 3 — App Flutter** 🚧 esqueleto pronto em [`app/`](app/) (tela única + ponte
   para o motor nativo); falta gerar as pastas nativas e cabear AVAudioEngine/Oboe.
 

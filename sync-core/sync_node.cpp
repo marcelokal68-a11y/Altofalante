@@ -1,17 +1,13 @@
 /*
- * sync_node — no real de sincronizacao multi-celular sobre UDP.
+ * sync_node — no real de sincronizacao multi-celular sobre UDP, com DESCOBERTA.
  *
  * Papeis:
- *   leader   <port> <expectedFollowers> <theta>
- *   follower <host> <port> <theta> <latency> <resultFile> <K>
+ *   leader   <expectedFollowers> <theta>
+ *   follower <theta> <latency> <resultFile> <K>
  *
- * `theta`  = offset artificial do relogio do aparelho (simula relogios fora de
- *            sincronia entre celulares diferentes).
- * `latency`= latencia de saida de audio do aparelho (compensada no agendamento).
- *
- * Mede a sincronizacao REAL: todos compartilham o CLOCK_MONOTONIC (mesma maquina),
- * entao o instante "emit" reportado por cada seguidor e comparavel. A diferenca
- * entre os emit dos seguidores e a defasagem real apos sincronizar pela rede.
+ * O lider anuncia sua presenca por multicast (estilo mDNS); o seguidor descobre o
+ * endereco do lider sozinho (sem IP fixo), entao sincroniza o relogio e agenda o
+ * inicio. Mede a sincronizacao real via CLOCK_MONOTONIC compartilhado.
  */
 #include "altofalante/sync.h"
 #include "altofalante/net.h"
@@ -19,46 +15,56 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <vector>
 #include <string>
 #include <unistd.h>
+#include <arpa/inet.h>
 
 using namespace af;
 using namespace af::net;
 
-static int runLeader(uint16_t port, int expected, double theta) {
-    UdpSocket s;
-    if (!s.open() || !s.bindPort(port)) { perror("leader bind"); return 1; }
-    printf("leader: ouvindo na porta %u (theta=%.3f)\n", port, theta);
+static int runLeader(int expected, double theta) {
+    UdpSocket data, ann;
+    if (!data.open() || !data.bindPort(0)) { perror("leader data"); return 1; }
+    if (!ann.open()) { perror("leader ann"); return 1; }
+    ann.setMulticastIface(MCAST_IFACE);
+    ann.enableMulticastLoop();
+    uint16_t dataPort = data.localPort();
+    Addr group = UdpSocket::makeAddr(MCAST_GROUP, MCAST_PORT);
+    printf("leader: porta de dados %u, anunciando em %s:%u (theta=%.3f)\n",
+           dataPort, MCAST_GROUP, MCAST_PORT, theta);
 
     std::vector<Addr> followers;
-    double start = monotonicNow();
+    double start = monotonicNow(), lastAnn = 0;
     bool played = false;
 
     while (true) {
+        double nowm = monotonicNow();
+        if (nowm - lastAnn > 0.2) { // anuncia a cada 200 ms
+            Packet a{}; a.type = MSG_ANNOUNCE; a.a = (double)dataPort;
+            ann.sendTo(&a, sizeof(a), group);
+            lastAnn = nowm;
+        }
         Packet p; Addr from;
-        int n = s.recv(&p, sizeof(p), from, 50);
-        if (n == (int)sizeof(p)) {
+        if (data.recv(&p, sizeof(p), from, 50) == (int)sizeof(p)) {
             if (p.type == MSG_HELLO) {
                 bool known = false;
                 for (auto& f : followers) if (f == from) known = true;
                 if (!known) followers.push_back(from);
             } else if (p.type == MSG_PROBE) {
-                Packet r{};
-                r.type = MSG_PROBE_REPLY; r.seq = p.seq;
-                r.a = p.a;                       // t0 (relogio do seguidor)
-                r.b = monotonicNow() + theta;    // t1 (recebido, relogio do lider)
-                r.c = monotonicNow() + theta;    // t2 (respondido)
-                s.sendTo(&r, sizeof(r), from);
+                Packet r{}; r.type = MSG_PROBE_REPLY; r.seq = p.seq;
+                r.a = p.a;
+                r.b = monotonicNow() + theta;
+                r.c = monotonicNow() + theta;
+                data.sendTo(&r, sizeof(r), from);
             }
         }
         double elapsed = monotonicNow() - start;
         bool ready = (int)followers.size() >= expected && elapsed > 1.5;
         if (!played && (ready || elapsed > 2.5) && !followers.empty()) {
-            double leaderStart = (monotonicNow() + theta) + 0.8; // 0.8s no futuro
+            double leaderStart = (monotonicNow() + theta) + 0.8;
             Packet pl{}; pl.type = MSG_PLAY; pl.a = leaderStart;
-            for (auto& f : followers) s.sendTo(&pl, sizeof(pl), f);
+            for (auto& f : followers) data.sendTo(&pl, sizeof(pl), f);
             played = true;
             printf("leader: PLAY enviado (leaderStart=%.6f, seguidores=%zu)\n",
                    leaderStart, followers.size());
@@ -68,17 +74,37 @@ static int runLeader(uint16_t port, int expected, double theta) {
     return 0;
 }
 
-static int runFollower(const std::string& host, uint16_t port, double theta,
-                       double latency, const std::string& resultFile, int K) {
+static int runFollower(double theta, double latency,
+                       const std::string& resultFile, int K) {
+    // --- descoberta: ouve anuncios multicast do lider ---
+    UdpSocket disc;
+    if (!disc.open() || !disc.joinMulticast(MCAST_GROUP, MCAST_PORT, MCAST_IFACE)) {
+        perror("follower multicast"); return 1;
+    }
+    Addr leader{}; bool found = false;
+    double t0 = monotonicNow();
+    while (monotonicNow() - t0 < 4.0) {
+        Packet a; Addr from;
+        if (disc.recv(&a, sizeof(a), from, 300) == (int)sizeof(a) &&
+            a.type == MSG_ANNOUNCE) {
+            leader = from;
+            leader.sa.sin_port = htons((uint16_t)a.a); // porta de dados anunciada
+            found = true;
+            char ip[32]; inet_ntop(AF_INET, &from.sa.sin_addr, ip, sizeof(ip));
+            printf("follower theta=%+.3f: descobriu lider em %s:%u\n",
+                   theta, ip, (uint16_t)a.a);
+            break;
+        }
+    }
+    if (!found) { fprintf(stderr, "follower: nao descobriu o lider\n"); return 2; }
+
     UdpSocket s;
-    if (!s.open() || !s.bindPort(0)) { perror("follower bind"); return 1; }
-    Addr leader = UdpSocket::makeAddr(host, port);
+    if (!s.open() || !s.bindPort(0)) { perror("follower data"); return 1; }
     auto clk = [&]() { return monotonicNow() + theta; };
 
     Packet hello{}; hello.type = MSG_HELLO;
     s.sendTo(&hello, sizeof(hello), leader);
 
-    // Sondagem de relogio (NTP-like).
     std::vector<sync::Sample> samples;
     for (int k = 0; k < K; ++k) {
         Packet p{}; p.type = MSG_PROBE; p.seq = k; p.a = clk();
@@ -93,10 +119,9 @@ static int runFollower(const std::string& host, uint16_t port, double theta,
     if (samples.empty()) { fprintf(stderr, "follower: sem respostas\n"); return 2; }
     sync::OffsetEstimate est = sync::estimateOffset(samples);
 
-    // Aguarda PLAY.
     double leaderStart = 0; bool got = false;
-    double t0 = monotonicNow();
-    while (monotonicNow() - t0 < 5.0) {
+    double tw = monotonicNow();
+    while (monotonicNow() - tw < 5.0) {
         Packet r; Addr from;
         if (s.recv(&r, sizeof(r), from, 200) == (int)sizeof(r) && r.type == MSG_PLAY) {
             leaderStart = r.a; got = true; break;
@@ -104,16 +129,15 @@ static int runFollower(const std::string& host, uint16_t port, double theta,
     }
     if (!got) { fprintf(stderr, "follower: sem PLAY\n"); return 3; }
 
-    // Agenda inicio local e espera com precisao.
     double localStart = sync::followerLocalStart(leaderStart, est.offset, latency);
-    double monoFire = localStart - theta; // relogio local -> monotonico compartilhado
+    double monoFire = localStart - theta;
     while (true) {
         double now = monotonicNow();
         if (now >= monoFire) break;
         double rem = monoFire - now;
         if (rem > 0.002) usleep((useconds_t)((rem - 0.001) * 1e6));
     }
-    double emit = monotonicNow() + latency; // instante em que o som emerge
+    double emit = monotonicNow() + latency;
 
     FILE* f = fopen(resultFile.c_str(), "a");
     if (f) { fprintf(f, "%.9f\n", emit); fclose(f); }
@@ -125,15 +149,14 @@ static int runFollower(const std::string& host, uint16_t port, double theta,
 int main(int argc, char** argv) {
     if (argc < 2) { fprintf(stderr, "uso: sync_node leader|follower ...\n"); return 1; }
     std::string role = argv[1];
-    if (role == "leader" && argc >= 5) {
-        return runLeader((uint16_t)atoi(argv[2]), atoi(argv[3]), atof(argv[4]));
+    if (role == "leader" && argc >= 4) {
+        return runLeader(atoi(argv[2]), atof(argv[3]));
     }
-    if (role == "follower" && argc >= 8) {
-        return runFollower(argv[2], (uint16_t)atoi(argv[3]), atof(argv[4]),
-                           atof(argv[5]), argv[6], atoi(argv[7]));
+    if (role == "follower" && argc >= 6) {
+        return runFollower(atof(argv[2]), atof(argv[3]), argv[4], atoi(argv[5]));
     }
     fprintf(stderr,
-            "uso:\n  sync_node leader <port> <expected> <theta>\n"
-            "  sync_node follower <host> <port> <theta> <latency> <file> <K>\n");
+            "uso:\n  sync_node leader <expected> <theta>\n"
+            "  sync_node follower <theta> <latency> <file> <K>\n");
     return 1;
 }

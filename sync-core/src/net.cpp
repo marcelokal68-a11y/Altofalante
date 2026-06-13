@@ -56,6 +56,38 @@ int UdpSocket::recv(void* buf, size_t len, Addr& from, int timeoutMs) {
     return (int)n;
 }
 
+uint16_t UdpSocket::localPort() {
+    sockaddr_in a{};
+    socklen_t sl = sizeof(a);
+    if (::getsockname(fd_, (sockaddr*)&a, &sl) != 0) return 0;
+    return ntohs(a.sin_port);
+}
+
+bool UdpSocket::joinMulticast(const std::string& group, uint16_t port,
+                             const std::string& iface) {
+    int yes = 1;
+    ::setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+#ifdef SO_REUSEPORT
+    ::setsockopt(fd_, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof(yes));
+#endif
+    if (!bindPort(port)) return false;
+    ip_mreq mreq{};
+    inet_pton(AF_INET, group.c_str(), &mreq.imr_multiaddr);
+    inet_pton(AF_INET, iface.c_str(), &mreq.imr_interface);
+    return ::setsockopt(fd_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) == 0;
+}
+
+bool UdpSocket::setMulticastIface(const std::string& iface) {
+    in_addr a{};
+    inet_pton(AF_INET, iface.c_str(), &a);
+    return ::setsockopt(fd_, IPPROTO_IP, IP_MULTICAST_IF, &a, sizeof(a)) == 0;
+}
+
+bool UdpSocket::enableMulticastLoop() {
+    unsigned char on = 1;
+    return ::setsockopt(fd_, IPPROTO_IP, IP_MULTICAST_LOOP, &on, sizeof(on)) == 0;
+}
+
 Addr UdpSocket::makeAddr(const std::string& host, uint16_t port) {
     Addr a;
     a.sa.sin_family = AF_INET;

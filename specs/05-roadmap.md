@@ -34,12 +34,15 @@ passam. ✅ Prova de valor da Fase 1 concluída.
 - [x] Simulação medindo defasagem entre 4 nós (relógios ±50 s + jitter assimétrico).
 - [x] **Transporte real sobre UDP** (`sync-core/net.cpp` + `sync_node`): sondagem de
       relógio e comando de PLAY por sockets reais; medição com 3 nós no localhost.
-- [ ] Descoberta na rede (mDNS) — hoje o endereço do líder é explícito; próximo passo.
+- [x] **Descoberta na rede (multicast estilo mDNS):** o líder anuncia e os seguidores
+      o encontram sozinhos (sem IP fixo, porta dinâmica). Falta só trocar a interface
+      de loopback pela Wi-Fi no device.
 
 **Resultados medidos:**
 - Simulação (`./build/sync-core/sync_sim`): defasagem **3.06 ms** com jitter.
-- Rede UDP real (`bash tools/sync_net_test.sh`): defasagem **0.011 ms** entre 3 nós
-  com relógios dessincronizados em -7/+12.5/+33.2 s e latências distintas. ✅
+- Rede real com descoberta (`bash tools/sync_net_test.sh`): seguidores descobrem o
+  líder por multicast e sincronizam a **~0.01 ms** entre 3 nós, mesmo com relógios
+  dessincronizados em -7/+12.5/+33.2 s e latências distintas. ✅
 
 **Critério de saída (no device):** dois aparelhos físicos tocam em sincronia com
 defasagem < 10 ms em LAN.

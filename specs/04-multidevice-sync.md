@@ -43,10 +43,14 @@ um sistema de som maior. É o único caminho para aumentar o volume **físico re
 ## Estado da implementação (protótipo)
 - `sync-core/`: estimativa de offset (`clock_sync.cpp`), agendador com compensação de
   latência (`scheduler.cpp`) e camada UDP POSIX (`net.cpp`) — portátil p/ iOS/Android.
-- `sync_node` roda como **líder** ou **seguidor** e troca sondagem + PLAY por UDP real.
-- Medição local (`tools/sync_net_test.sh`): 3 nós sincronizam com defasagem ~0.01 ms.
-- **Falta para o device:** descoberta mDNS (hoje o endereço do líder é passado
-  explicitamente) e o transporte de mídia (modelo (a): cada aparelho já tem a faixa e
-  o líder só envia o instante de início).
+- **Descoberta por multicast** (estilo mDNS): o líder anuncia em `239.255.42.99:45200`
+  com sua porta de dados; o seguidor descobre o endereço sozinho (sem IP fixo).
+- `sync_node` roda como **líder** ou **seguidor**: descobre, sondagem + PLAY por UDP real.
+- Medição local (`tools/sync_net_test.sh`): 3 nós descobrem e sincronizam a ~0.01 ms.
+- **Falta para o device:**
+  - trocar a interface multicast de loopback (`MCAST_IFACE`) pela interface Wi-Fi;
+  - transporte de mídia (modelo (a): cada aparelho já tem a faixa e o líder só envia o
+    instante de início);
+  - usar mDNS/Bonjour nativo se preferir interoperar com o sistema.
 - _Nota de portabilidade:_ os pacotes enviam `double` cru (ok p/ mesma arquitetura no
   protótipo); no produto, serializar em ordem de rede.
