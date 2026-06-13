@@ -32,10 +32,14 @@ passam. ✅ Prova de valor da Fase 1 concluída.
 - [x] Estimativa de offset de relógio estilo NTP (filtro de menor atraso) — `sync-core/`.
 - [x] Agendador de início com compensação de latência de saída.
 - [x] Simulação medindo defasagem entre 4 nós (relógios ±50 s + jitter assimétrico).
-- [ ] Descoberta na rede (mDNS) e transporte real (próximo passo no device).
+- [x] **Transporte real sobre UDP** (`sync-core/net.cpp` + `sync_node`): sondagem de
+      relógio e comando de PLAY por sockets reais; medição com 3 nós no localhost.
+- [ ] Descoberta na rede (mDNS) — hoje o endereço do líder é explícito; próximo passo.
 
-**Resultado medido** (`./build/sync-core/sync_sim`): defasagem máxima **3.06 ms**
-(meta < 10 ms) com erro de estimativa de offset < 0.3 ms. ✅
+**Resultados medidos:**
+- Simulação (`./build/sync-core/sync_sim`): defasagem **3.06 ms** com jitter.
+- Rede UDP real (`bash tools/sync_net_test.sh`): defasagem **0.011 ms** entre 3 nós
+  com relógios dessincronizados em -7/+12.5/+33.2 s e latências distintas. ✅
 
 **Critério de saída (no device):** dois aparelhos físicos tocam em sincronia com
 defasagem < 10 ms em LAN.

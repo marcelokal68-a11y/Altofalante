@@ -25,6 +25,9 @@ jobs:
       - name: Simulacao de sincronizacao multi-celular
         run: ./build/sync-core/sync_sim
 
+      - name: Sincronizacao multi-celular via rede UDP (localhost)
+        run: bash tools/sync_net_test.sh
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:

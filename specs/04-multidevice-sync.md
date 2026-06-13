@@ -39,3 +39,14 @@ um sistema de som maior. É o único caminho para aumentar o volume **físico re
 - iOS restringe execução em background e timers de alta precisão.
 - Variabilidade enorme de latência de áudio entre modelos Android.
 - Wi-Fi congestionado degrada a sincronização.
+
+## Estado da implementação (protótipo)
+- `sync-core/`: estimativa de offset (`clock_sync.cpp`), agendador com compensação de
+  latência (`scheduler.cpp`) e camada UDP POSIX (`net.cpp`) — portátil p/ iOS/Android.
+- `sync_node` roda como **líder** ou **seguidor** e troca sondagem + PLAY por UDP real.
+- Medição local (`tools/sync_net_test.sh`): 3 nós sincronizam com defasagem ~0.01 ms.
+- **Falta para o device:** descoberta mDNS (hoje o endereço do líder é passado
+  explicitamente) e o transporte de mídia (modelo (a): cada aparelho já tem a faixa e
+  o líder só envia o instante de início).
+- _Nota de portabilidade:_ os pacotes enviam `double` cru (ok p/ mesma arquitetura no
+  protótipo); no produto, serializar em ordem de rede.
