@@ -32,6 +32,7 @@ struct Packet {
     uint8_t  type;
     uint32_t seq;
     double   a, b, c;
+    char     name[24]; // nome do aparelho (preenchido no HELLO)
 };
 #pragma pack(pop)
 

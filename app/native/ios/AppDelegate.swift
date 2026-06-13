@@ -32,6 +32,7 @@ import AVFoundation
             case "pause":      engine.pause();  result(nil)
             case "setEnabled": engine.setEnabled((args?["enabled"] as? Bool) ?? true); result(nil)
             case "setPreset":  engine.setPreset((args?["preset"] as? String) ?? "balanced"); result(nil)
+            case "isFinished": result(engine.finished)
             default:           result(FlutterMethodNotImplemented)
             }
         }
@@ -47,6 +48,8 @@ import AVFoundation
             case "followerCount":  result(sync.followerCount())
             case "setStereo":      sync.setStereo((args?["enabled"] as? Bool) ?? false); result(nil)
             case "channel":        result(sync.channel())
+            case "setName":        sync.setName((args?["name"] as? String) ?? "Celular"); result(nil)
+            case "followerNames":  result(sync.followerNames())
             case "playSynced":     sync.playSynced(); result(nil)
             case "joinGroup":      sync.joinGroup { ok, info in result(["ok": ok, "leader": info]) }
             case "leave":          sync.leave(); result(nil)

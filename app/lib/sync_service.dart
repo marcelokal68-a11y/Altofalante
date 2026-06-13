@@ -35,6 +35,15 @@ class SyncService {
   /// Canal deste aparelho: 0=ambos, 1=esquerda, 2=direita.
   Future<int> channel() async => (await _ch.invokeMethod<int>('channel')) ?? 0;
 
+  /// Define o nome deste aparelho (mostrado para o comando).
+  Future<void> setName(String name) => _ch.invokeMethod('setName', {'name': name});
+
+  /// (Líder) nomes dos aparelhos conectados.
+  Future<List<String>> followerNames() async {
+    final r = await _ch.invokeListMethod<dynamic>('followerNames');
+    return (r ?? []).map((e) => e.toString()).toList();
+  }
+
   /// Sai do grupo.
   Future<void> leave() => _ch.invokeMethod('leave');
 }

@@ -32,6 +32,11 @@ void   af_sync_set_stereo(AfSync* s, int enabled);
 /* Canal atribuído a ESTE aparelho (após play/wait). Ver AF_CH_*. */
 int    af_sync_channel(AfSync* s);
 
+/* Define o nome deste aparelho (enviado ao líder no HELLO). Ex.: "iPhone do Léo". */
+void   af_sync_set_name(AfSync* s, const char* name);
+/* (Líder) nomes dos seguidores conectados, separados por '\n'. Retorna a quantidade. */
+int    af_sync_follower_list(AfSync* s, char* out, int outLen);
+
 /* ---- LÍDER ---- */
 /* Começa a anunciar (multicast) e atender sondas, em thread interna. 0 = ok. */
 int    af_sync_start_leader(AfSync* s);

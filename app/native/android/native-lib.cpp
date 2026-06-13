@@ -25,6 +25,7 @@ public:
         std::lock_guard<std::mutex> lk(mtx_);
         const int ch = channels_;
         if (!playing_ || readIndex_ >= pcm_.size()) {
+            if (playing_ && readIndex_ >= pcm_.size()) finished_ = true;
             std::memset(out, 0, sizeof(float) * numFrames * ch);
             return oboe::DataCallbackResult::Continue;
         }
@@ -47,7 +48,7 @@ public:
         std::lock_guard<std::mutex> lk(mtx_);
         closeStream();
         pcm_.assign(data, data + count);
-        readIndex_ = 0; channels_ = ch; sampleRate_ = sr; playing_ = false;
+        readIndex_ = 0; channels_ = ch; sampleRate_ = sr; playing_ = false; finished_ = false;
         if (dsp_) af_destroy(dsp_);
         dsp_ = af_create(sr, ch);
         af_set_preset(dsp_, AF_PRESET_MUSIC_BALANCED);
@@ -70,6 +71,7 @@ public:
     void setEnabled(bool on) { af_set_enabled(dsp_, on ? 1 : 0); }
     void setPreset(AfPreset p) { af_set_preset(dsp_, p); }
     void setChannel(int c) { std::lock_guard<std::mutex> lk(mtx_); channel_ = c; }
+    bool finished() { std::lock_guard<std::mutex> lk(mtx_); return finished_; }
 
 private:
     void openStream() {
@@ -93,6 +95,7 @@ private:
     int channels_ = 2, sampleRate_ = 48000;
     int channel_ = 0; // 0=ambos, 1=esquerda, 2=direita
     bool playing_ = false;
+    bool finished_ = false;
     AfEngine* dsp_ = nullptr;
     std::mutex mtx_;
 };
@@ -141,6 +144,11 @@ Java_com_altofalante_app_MainActivity_nativeSetPreset(JNIEnv* env, jobject, jstr
     env->ReleaseStringUTFChars(name, s);
 }
 
+JNIEXPORT jboolean JNICALL
+Java_com_altofalante_app_MainActivity_nativeIsFinished(JNIEnv*, jobject) {
+    return g_player.finished() ? JNI_TRUE : JNI_FALSE;
+}
+
 // ---- multi-celular (sync-core) ----
 
 JNIEXPORT void JNICALL
@@ -173,10 +181,24 @@ Java_com_altofalante_app_MainActivity_nativeSyncLeaderPlay(JNIEnv*, jobject) {
     g_player.playAt(fire);
 }
 
+JNIEXPORT void JNICALL
+Java_com_altofalante_app_MainActivity_nativeSyncSetName(JNIEnv* env, jobject, jstring name) {
+    if (!g_sync) g_sync = af_sync_create(0, nullptr);
+    const char* s = env->GetStringUTFChars(name, nullptr);
+    af_sync_set_name(g_sync, s);
+    env->ReleaseStringUTFChars(name, s);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_altofalante_app_MainActivity_nativeSyncFollowerNames(JNIEnv* env, jobject) {
+    char buf[1024] = {0};
+    if (g_sync) af_sync_follower_list(g_sync, buf, sizeof(buf));
+    return env->NewStringUTF(buf); // nomes separados por '\n'
+}
+
 JNIEXPORT jint JNICALL
 Java_com_altofalante_app_MainActivity_nativeSyncJoin(JNIEnv*, jobject) {
-    if (g_sync) af_sync_destroy(g_sync);
-    g_sync = af_sync_create(0, nullptr);
+    if (!g_sync) { g_sync = af_sync_create(0, nullptr); }
     return af_sync_join(g_sync, 4000);
 }
 

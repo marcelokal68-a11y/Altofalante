@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Altofalante — preview clicável</title>
+<style>
+  :root{
+    --bg:#0A0A0F; --surface:#16161F; --surface2:#1F1F2B;
+    --p1:#A855F7; --p2:#EC4899; --accent:#22D3EE; --text:#F5F5FA; --muted:#8B8B99;
+    --grad:linear-gradient(135deg,#A855F7,#D946C6,#EC4899);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif}
+  body{background:#05050a;color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 12px 60px}
+  .topbar{display:flex;gap:8px;margin-bottom:18px}
+  .topbar button{background:var(--surface2);color:var(--muted);border:none;border-radius:999px;padding:10px 22px;font-size:15px;font-weight:700;cursor:pointer}
+  .topbar button.active{background:var(--grad);color:#fff}
+  .hint{color:var(--muted);font-size:12px;margin-bottom:14px;text-align:center;max-width:380px}
+
+  /* ---------- phone ---------- */
+  .phone{width:380px;max-width:96vw;background:#000;border-radius:46px;padding:12px;box-shadow:0 24px 70px rgba(168,85,247,.18)}
+  .screen{background:var(--bg);border-radius:36px;padding:20px;position:relative;overflow:hidden;height:780px;display:flex;flex-direction:column}
+  .notch{width:120px;height:7px;border-radius:4px;background:#1c1c28;margin:0 auto 14px}
+
+  .hd{display:flex;align-items:center;gap:9px}
+  .hd .wm{font-size:19px;font-weight:800}
+  .hd .wm b{color:var(--p2)}
+  .hd .dots{margin-left:auto;color:#6b6b7a;font-size:20px;letter-spacing:2px}
+  .ico{width:30px;height:30px;border-radius:8px;background:var(--grad);display:flex;align-items:center;justify-content:center}
+
+  .now{display:flex;align-items:center;gap:13px;margin-top:18px;cursor:pointer}
+  .art{width:54px;height:54px;border-radius:14px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:24px}
+  .now .t{font-size:16px;font-weight:700}
+  .now .s{font-size:12.5px;color:var(--muted);margin-top:2px}
+
+  .turbowrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+  .turbo{width:200px;height:200px;border-radius:50%;background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:.25s;border:none}
+  .turbo.on{background:var(--grad);box-shadow:0 0 55px rgba(236,72,153,.55)}
+  .eq{display:flex;align-items:center;gap:6px;height:74px}
+  .eq i{width:13px;border-radius:7px;background:var(--muted);height:24px}
+  .turbo.on .eq i{background:#fff;animation:bounce .9s ease-in-out infinite alternate}
+  .turbo.on .eq i:nth-child(1){animation-delay:0s}
+  .turbo.on .eq i:nth-child(2){animation-delay:.18s}
+  .turbo.on .eq i:nth-child(3){animation-delay:.34s}
+  .turbo.on .eq i:nth-child(4){animation-delay:.5s}
+  .turbo.on .eq i:nth-child(5){animation-delay:.66s}
+  @keyframes bounce{from{height:18px}to{height:72px}}
+  .turbo .lbl{font-size:21px;font-weight:800;letter-spacing:1px;color:var(--muted)}
+  .turbo.on .lbl{color:#fff}
+
+  .badge{align-self:center;border:1px solid rgba(34,211,238,.45);background:rgba(34,211,238,.08);color:var(--accent);font-size:12.5px;font-weight:700;padding:7px 15px;border-radius:999px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin-top:18px}
+  .chip{background:var(--surface);border:1px solid #33333f;color:#c8c8d2;font-weight:700;font-size:13.5px;padding:10px 18px;border-radius:999px;cursor:pointer}
+  .chip.sel{background:var(--grad);border-color:transparent;color:#fff}
+
+  .link{margin-top:16px;text-align:center;color:var(--accent);font-weight:700;font-size:13.5px;cursor:pointer}
+  .gstatus{margin-top:16px;display:none;align-items:center;justify-content:center;gap:8px;color:var(--accent);font-weight:700;font-size:13.5px}
+  .gstatus .leave{color:var(--muted);text-decoration:underline;cursor:pointer;font-weight:400}
+
+  .ctrls{display:flex;align-items:center;justify-content:center;gap:22px;margin-top:auto;padding-top:14px}
+  .ctrls .skip{font-size:30px;color:var(--muted);cursor:pointer;background:none;border:none}
+  .play{width:78px;height:78px;border-radius:50%;background:#fff;border:none;color:#0A0A0F;font-size:34px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+  .demo{margin-top:14px;text-align:center}
+  .demo button{background:var(--surface2);border:1px solid #33333f;color:var(--text);border-radius:999px;padding:9px 18px;font-weight:700;font-size:13px;cursor:pointer}
+  .demo .note{color:var(--muted);font-size:11px;margin-top:6px}
+
+  /* ---------- bottom sheet ---------- */
+  .sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;border-radius:36px}
+  .sheet-bg.open{display:flex}
+  .sheet{background:var(--surface);width:100%;border-radius:24px 24px 0 0;padding:22px}
+  .sheet h3{text-align:center;font-size:17px}
+  .sheet p{text-align:center;color:var(--muted);font-size:12.5px;margin:6px 0 16px}
+  .sw{display:flex;align-items:center;justify-content:space-between;padding:8px 0;margin-bottom:8px}
+  .sw .toggle{width:46px;height:26px;border-radius:999px;background:var(--surface2);position:relative;cursor:pointer;transition:.2s}
+  .sw .toggle.on{background:var(--accent)}
+  .sw .toggle::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+  .sw .toggle.on::after{left:23px}
+  .btn{width:100%;border:none;border-radius:14px;padding:15px;font-weight:700;font-size:15px;cursor:pointer;margin-top:10px}
+  .btn.primary{background:var(--grad);color:#fff}
+  .btn.ghost{background:transparent;border:1px solid #33333f;color:var(--text)}
+  .devlist{margin-top:12px}
+  .devlist .d{display:flex;align-items:center;gap:10px;padding:8px 0;color:var(--text);font-size:14px}
+  .devlist .d span{margin-left:auto;color:var(--accent);font-weight:700;font-size:12px}
+
+  /* ---------- manual ---------- */
+  .manual{max-width:680px;line-height:1.6}
+  .manual h1{font-size:26px;margin-bottom:6px}
+  .manual h2{font-size:19px;margin:26px 0 8px;color:var(--p2)}
+  .manual .lead{color:var(--muted)}
+  .card{background:var(--surface);border:1px solid var(--surface2);border-radius:16px;padding:16px 18px;margin-top:12px}
+  .step{display:flex;gap:14px;margin:14px 0}
+  .step .n{flex:none;width:34px;height:34px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:800}
+  .truth{border-left:3px solid var(--accent);background:rgba(34,211,238,.06);padding:12px 16px;border-radius:8px;margin-top:12px}
+  .faq b{color:var(--text)}.faq div{margin:10px 0;color:var(--muted)}
+  .ctrlrow{display:flex;align-items:center;gap:12px;margin:10px 0}
+  .pill{font-size:22px;width:46px;height:46px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex:none}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button id="tabApp" class="active" onclick="showTab('app')">📱 App</button>
+  <button id="tabMan" onclick="showTab('man')">📖 Manual</button>
+</div>
+<div class="hint">Preview clicável — não é o app final, mas funciona pra você sentir a experiência. Toque em tudo.</div>
+
+<!-- ======================= APP ======================= -->
+<div id="view-app" class="phone">
+  <div class="screen">
+    <div class="notch"></div>
+
+    <div class="hd">
+      <div class="ico">
+        <svg width="20" height="20" viewBox="0 0 1024 1024"><g fill="#fff"><rect x="300" y="452" width="74" height="120" rx="20"/><polygon points="362,452 362,572 486,654 486,370"/></g><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M455.6 356.4 A220 220 0 0 1 455.6 667.6" stroke-width="46"/><path d="M519.2 292.8 A310 310 0 0 1 519.2 731.2" stroke-width="42" opacity=".85"/></g></svg>
+      </div>
+      <div class="wm">alto<b>falante</b></div>
+      <div class="dots">⋮</div>
+    </div>
+
+    <div class="now" onclick="nextTrack()">
+      <div class="art">🎵</div>
+      <div>
+        <div class="t" id="trackTitle">Let It Happen</div>
+        <div class="s" id="trackSub">Tame Impala · faixa 1 de 3</div>
+      </div>
+    </div>
+
+    <div class="turbowrap">
+      <button class="turbo on" id="turbo" onclick="toggleTurbo()">
+        <div class="eq"><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="lbl" id="turboLbl">TURBO ON</div>
+      </button>
+      <div class="badge">+6 dB de volume · sem distorcer</div>
+    </div>
+
+    <div class="chips" id="chips">
+      <div class="chip" data-p="voice" onclick="selPreset(this)">Voz</div>
+      <div class="chip sel" data-p="balanced" onclick="selPreset(this)">Equilibrado</div>
+      <div class="chip" data-p="bass" onclick="selPreset(this)">Grave+</div>
+      <div class="chip" data-p="party" onclick="selPreset(this)">Festa</div>
+      <div class="chip" data-p="portable" onclick="selPreset(this)">Caixa</div>
+    </div>
+
+    <div class="link" id="syncLink" onclick="openSheet()">+ tocar junto com outro celular</div>
+    <div class="gstatus" id="gstatus">
+      <span>📡</span><span id="gtext"></span>
+      <span class="leave" onclick="leaveGroup()">sair</span>
+    </div>
+
+    <div class="ctrls">
+      <button class="skip" onclick="prevTrack()">⏮</button>
+      <button class="play" id="playBtn" onclick="togglePlay()">▶</button>
+      <button class="skip" onclick="nextTrack()">⏭</button>
+    </div>
+
+    <div class="demo">
+      <button id="demoBtn" onclick="toggleDemo()">🔊 ouvir a diferença</button>
+      <div class="note">demonstração no navegador · no app é o motor C++ nativo</div>
+    </div>
+
+    <!-- bottom sheet -->
+    <div class="sheet-bg" id="sheetBg">
+      <div class="sheet">
+        <h3>Tocar junto com outros celulares</h3>
+        <p>Todos na mesma Wi-Fi. Um vira o comando, os outros entram.</p>
+        <div class="sw">
+          <div><b>Modo estéreo</b><br><span style="color:var(--muted);font-size:12px">cada celular vira um lado (esq/dir)</span></div>
+          <div class="toggle" id="stToggle" onclick="toggleStereo()"></div>
+        </div>
+        <button class="btn primary" onclick="createGroup()">Criar grupo (sou o comando)</button>
+        <button class="btn ghost" onclick="joinGroup()">Entrar num grupo</button>
+        <div class="devlist hidden" id="devlist"></div>
+        <button class="btn ghost hidden" id="simBtn" onclick="simJoin()">＋ simular um celular entrando</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ======================= MANUAL ======================= -->
+<div id="view-man" class="manual hidden">
+  <h1>Manual do Altofalante 🔊</h1>
+  <p class="lead">Para quem nunca usou. Leitura de 3 minutos.</p>
+
+  <div class="truth">
+    <b>O que é, em 1 frase:</b> um app que deixa o som do seu celular <b>mais alto e mais
+    limpo</b> — e, se você juntar vários celulares, eles tocam juntos como um som maior.
+    <br><br>
+    <b>A verdade honesta:</b> ele não transforma o celular numa JBL (existe um limite
+    físico no alto-falante). Ele tira o <b>máximo</b> que o seu aparelho consegue, sem
+    chiar. Volume de verdade a mais? Junte mais celulares. 🙂
+  </div>
+
+  <h2>Para que serve cada botão</h2>
+  <div class="card">
+    <div class="ctrlrow"><div class="pill">🎵</div><div><b>Topo (música):</b> toque para escolher suas músicas do celular. Vira uma fila.</div></div>
+    <div class="ctrlrow"><div class="pill" style="background:var(--grad)">〽️</div><div><b>Botão TURBO:</b> o grandão do meio. <b>Rosa = ligado</b> (som turbinado), <b>cinza = desligado</b> (som normal). Toque para comparar.</div></div>
+    <div class="ctrlrow"><div class="pill">🎚️</div><div><b>Botõezinhos (modos):</b> o "tempero" do som — <b>Equilibrado</b> para o dia a dia, <b>Festa</b> para o máximo, <b>Grave+</b> para mais corpo.</div></div>
+    <div class="ctrlrow"><div class="pill">⏮▶⏭</div><div><b>Embaixo:</b> tocar/pausar e pular faixa.</div></div>
+    <div class="ctrlrow"><div class="pill">📡</div><div><b>"Tocar junto":</b> conecta outros celulares na mesma Wi-Fi.</div></div>
+  </div>
+
+  <h2>Como usar em 4 passos</h2>
+  <div class="step"><div class="n">1</div><div><b>Escolha a música</b> tocando no topo da tela.</div></div>
+  <div class="step"><div class="n">2</div><div><b>Deixe o TURBO ligado</b> (rosa). Toque nele para ouvir a diferença ligado/desligado.</div></div>
+  <div class="step"><div class="n">3</div><div><b>Escolha um modo:</b> comece no <b>Equilibrado</b>; use <b>Festa</b> quando quiser no talo.</div></div>
+  <div class="step"><div class="n">4</div><div><b>Dê play.</b> Pronto — seu celular virou caixa de som.</div></div>
+
+  <h2>Tocar com outro celular (estéreo!)</h2>
+  <div class="card">
+    1. Os dois celulares na <b>mesma Wi-Fi</b>.<br>
+    2. Num deles, toque em <b>"tocar junto" → Criar grupo</b> (esse vira o comando).<br>
+    3. No outro, <b>"tocar junto" → Entrar num grupo</b>.<br>
+    4. Ligue o <b>Modo estéreo</b> para um virar o lado <b>esquerdo</b> e o outro o
+       <b>direito</b>.<br>
+    5. Dê play no comando — os dois soltam o som <b>juntinhos</b>. 🎶
+  </div>
+
+  <h2>Ensinar alguém em 30 segundos</h2>
+  <div class="card">"Abre o app, escolhe a música, esse botão grande é o Turbo (liga e
+  desliga pra ouvir a diferença), esses botõezinhos são os modos. Dá play. Pronto."</div>
+
+  <h2>Perguntas rápidas</h2>
+  <div class="card faq">
+    <div><b>Não fica tão alto quanto eu queria?</b> O alto-falante tem um limite físico.
+    Para mais volume real, junte outro celular no modo "tocar junto".</div>
+    <div><b>Funciona com Spotify/YouTube?</b> No iPhone não dá (a Apple bloqueia o áudio
+    de outros apps). Você toca suas músicas dentro do Altofalante.</div>
+    <div><b>Vai estourar/chiar?</b> Não — tem um limitador que segura o volume antes de
+    distorcer.</div>
+  </div>
+  <p class="lead" style="margin-top:24px">Agora volte para o <b>📱 App</b> e experimente. 😉</p>
+</div>
+
+<script>
+// ---------- navegação ----------
+function showTab(t){
+  document.getElementById('view-app').classList.toggle('hidden', t!=='app');
+  document.getElementById('view-man').classList.toggle('hidden', t!=='man');
+  document.getElementById('tabApp').classList.toggle('active', t==='app');
+  document.getElementById('tabMan').classList.toggle('active', t==='man');
+}
+
+// ---------- estado ----------
+const queue=[['Let It Happen','Tame Impala'],['Redbone','Childish Gambino'],['Get Lucky','Daft Punk']];
+let qi=0, turbo=true, playing=false, stereo=false, group=null, devices=[];
+
+function render(){
+  document.getElementById('trackTitle').textContent=queue[qi][0];
+  document.getElementById('trackSub').textContent=queue[qi][1]+' · faixa '+(qi+1)+' de '+queue.length;
+  const tb=document.getElementById('turbo');
+  tb.classList.toggle('on',turbo);
+  document.getElementById('turboLbl').textContent='TURBO '+(turbo?'ON':'OFF');
+  document.getElementById('playBtn').textContent=playing?'⏸':'▶';
+  const gs=document.getElementById('gstatus'), lk=document.getElementById('syncLink');
+  if(group){ gs.style.display='flex'; lk.style.display='none';
+    document.getElementById('gtext').textContent=groupText();
+  } else { gs.style.display='none'; lk.style.display='block'; }
+}
+function groupText(){
+  if(group==='leader') return 'Comando · '+devices.length+' conectado(s)'+(stereo?' · ESQ':'');
+  return 'Conectado'+(stereo?' · DIR':'');
+}
+
+// ---------- interações ----------
+function toggleTurbo(){ turbo=!turbo; updateAudio(); render(); }
+function selPreset(el){ document.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel')); el.classList.add('sel'); updateAudio(); }
+function togglePlay(){ playing=!playing; if(playing) ensureAudio(); setAudioPlaying(playing); render(); }
+function nextTrack(){ qi=(qi+1)%queue.length; render(); }
+function prevTrack(){ qi=(qi-1+queue.length)%queue.length; render(); }
+
+function openSheet(){ document.getElementById('sheetBg').classList.add('open'); }
+function closeSheet(){ document.getElementById('sheetBg').classList.remove('open'); }
+function toggleStereo(){ stereo=!stereo; document.getElementById('stToggle').classList.toggle('on',stereo); }
+function createGroup(){ group='leader'; devices=[]; refreshDev(); document.getElementById('simBtn').classList.remove('hidden'); document.getElementById('devlist').classList.remove('hidden'); render(); }
+function joinGroup(){ group='follower'; closeSheet(); render(); }
+function simJoin(){ const names=['iPhone do Léo','Galaxy da Ana','Moto do Téo','iPhone da Bia']; devices.push(names[devices.length%names.length]); refreshDev(); render(); }
+function refreshDev(){
+  const el=document.getElementById('devlist');
+  el.innerHTML = devices.length? devices.map((d,i)=>'<div class="d">📱 '+d+'<span>'+(stereo?(i%2?'ESQ':'DIR'):'OK')+'</span></div>').join('') : '<div class="d" style="color:var(--muted)">Aguardando celulares entrarem…</div>';
+}
+function leaveGroup(){ group=null; devices=[]; closeSheet(); render(); }
+
+// ---------- demo de áudio (WebAudio) ----------
+let actx,srcNode,dryGain,wetMakeup,comp,eqLow,eqMid,limiter,loopBuf,audioOn=false;
+function buildLoop(ctx){
+  const sr=ctx.sampleRate, dur=4, n=sr*dur, buf=ctx.createBuffer(2,n,sr);
+  const bass=[65.4,98,110,87.3], mel=[329.6,392,440,392,329.6,293.7,261.6,392];
+  for(let c=0;c<2;c++){ const d=buf.getChannelData(c);
+    for(let i=0;i<n;i++){ const t=i/sr; const beat=Math.floor(t/0.5)%8;
+      const bf=bass[Math.floor(t/1)%4]; const env=Math.exp(-(t%0.5)*3);
+      let s=0.5*Math.sin(2*Math.PI*bf*t)*Math.exp(-(t%1)*1.2);          // baixo
+      s+=0.28*( (2/Math.PI)*Math.asin(Math.sin(2*Math.PI*mel[beat]*t)) )*env; // melodia
+      if((i%(sr/2))<200) s+=0.15*(Math.random()*2-1)*Math.exp(-(i%(sr/2))/60); // hat
+      d[i]=s*0.6;
+    }
+  }
+  return buf;
+}
+function ensureAudio(){
+  if(actx) return;
+  actx=new (window.AudioContext||window.webkitAudioContext)();
+  loopBuf=buildLoop(actx);
+  dryGain=actx.createGain();
+  comp=actx.createDynamicsCompressor(); comp.threshold.value=-30; comp.ratio.value=4; comp.attack.value=0.005; comp.release.value=0.12;
+  eqLow=actx.createBiquadFilter(); eqLow.type='lowshelf'; eqLow.frequency.value=120; eqLow.gain.value=4;
+  eqMid=actx.createBiquadFilter(); eqMid.type='peaking'; eqMid.frequency.value=3000; eqMid.Q.value=0.9; eqMid.gain.value=4;
+  limiter=actx.createDynamicsCompressor(); limiter.threshold.value=-3; limiter.ratio.value=20; limiter.attack.value=0.001; limiter.release.value=0.05;
+  wetMakeup=actx.createGain();
+  comp.connect(eqLow); eqLow.connect(eqMid); eqMid.connect(limiter); limiter.connect(wetMakeup); wetMakeup.connect(actx.destination);
+  dryGain.connect(actx.destination);
+}
+function startSource(){
+  srcNode=actx.createBufferSource(); srcNode.buffer=loopBuf; srcNode.loop=true;
+  srcNode.connect(comp); srcNode.connect(dryGain);
+  srcNode.start();
+}
+function updateAudio(){
+  if(!actx) return;
+  // Turbo ON = cadeia processada (mais alto/cheio); OFF = sinal seco mais baixo.
+  wetMakeup.gain.value = turbo?1.8:0.0;
+  dryGain.gain.value   = turbo?0.0:0.5;
+}
+function setAudioPlaying(p){
+  if(!actx) return;
+  if(p){ if(actx.state==='suspended') actx.resume(); if(!srcNode){ startSource(); } updateAudio(); }
+  else { if(srcNode){ srcNode.stop(); srcNode.disconnect(); srcNode=null; } }
+}
+function toggleDemo(){
+  ensureAudio();
+  audioOn=!audioOn;
+  const b=document.getElementById('demoBtn');
+  if(audioOn){ playing=true; if(actx.state==='suspended')actx.resume(); if(!srcNode)startSource(); updateAudio(); b.textContent='⏹ parar demonstração'; }
+  else { if(srcNode){srcNode.stop();srcNode.disconnect();srcNode=null;} playing=false; b.textContent='🔊 ouvir a diferença'; }
+  render();
+}
+
+// fechar sheet ao tocar no fundo
+document.getElementById('sheetBg').addEventListener('click',e=>{ if(e.target.id==='sheetBg') closeSheet(); });
+render();
+</script>
+</body>
+</html>

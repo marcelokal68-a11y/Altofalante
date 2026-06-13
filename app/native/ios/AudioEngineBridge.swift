@@ -17,6 +17,7 @@ final class AudioEngineBridge {
     private var playing = false
     private var channels = 2
     var channel = 0   // 0=ambos, 1=esquerda, 2=direita (estéreo entre aparelhos)
+    private(set) var finished = false   // faixa chegou ao fim (para avançar a fila)
 
     private var dsp: OpaquePointer?            // AfEngine*
     private var scratch: UnsafeMutablePointer<Float>?
@@ -43,6 +44,8 @@ final class AudioEngineBridge {
 
         buffer = buf
         readIndex = 0
+        finished = false
+        playing = false
         setupGraph(format: fmt)
     }
 
@@ -89,6 +92,7 @@ final class AudioEngineBridge {
     private func render(frameCount n: Int,
                         abl: UnsafeMutablePointer<AudioBufferList>) -> OSStatus {
         let out = UnsafeMutableAudioBufferListPointer(abl)
+        if playing, let buf = buffer, readIndex >= Int(buf.frameLength) { finished = true }
         guard playing, let buf = buffer,
               let src = buf.floatChannelData,
               readIndex < Int(buf.frameLength) else {

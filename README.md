@@ -69,6 +69,7 @@ test-audio/   # amostras geradas (gitignored)
 ```
 
 ## Design & uso
+- **Preview clicável + manual** (abra no navegador): [`preview/altofalante.html`](preview/altofalante.html).
 - Identidade visual e mockups: [`branding/`](branding/) (ver `brand-guide.md`).
 - Como usar o app, mexer no código e ensinar outros: [`docs/GUIA.md`](docs/GUIA.md).
 - Testar a sincronização multi-celular (passo a passo): [`docs/TESTE-MULTICELULAR.md`](docs/TESTE-MULTICELULAR.md).

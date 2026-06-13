@@ -39,4 +39,8 @@ class AudioEngine {
   /// Troca de preset sem cortar o audio (RF3).
   Future<void> setPreset(DspPreset preset) =>
       _ch.invokeMethod('setPreset', {'preset': preset.name});
+
+  /// Indica se a faixa atual chegou ao fim (para avancar a fila automaticamente).
+  Future<bool> isFinished() async =>
+      (await _ch.invokeMethod<bool>('isFinished')) ?? false;
 }

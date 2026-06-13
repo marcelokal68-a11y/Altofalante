@@ -23,6 +23,7 @@ class MainActivity : FlutterActivity() {
     private external fun nativePause()
     private external fun nativeSetEnabled(enabled: Boolean)
     private external fun nativeSetPreset(preset: String)
+    private external fun nativeIsFinished(): Boolean
 
     // multi-celular
     private external fun nativeSyncCreateLeader()
@@ -30,6 +31,8 @@ class MainActivity : FlutterActivity() {
     private external fun nativeSyncLeaderPlay()
     private external fun nativeSyncSetStereo(enabled: Boolean)
     private external fun nativeSyncChannel(): Int
+    private external fun nativeSyncSetName(name: String)
+    private external fun nativeSyncFollowerNames(): String
     private external fun nativeSyncJoin(): Int
     private external fun nativeSyncLeaderEndpoint(): String
     private external fun nativeSyncWaitPlayOnce(): Double
@@ -60,6 +63,7 @@ class MainActivity : FlutterActivity() {
                     "pause" -> { nativePause(); result.success(null) }
                     "setEnabled" -> { nativeSetEnabled(call.argument<Boolean>("enabled") ?: true); result.success(null) }
                     "setPreset" -> { nativeSetPreset(call.argument<String>("preset") ?: "balanced"); result.success(null) }
+                    "isFinished" -> result.success(nativeIsFinished())
                     else -> result.notImplemented()
                 }
             }
@@ -72,9 +76,15 @@ class MainActivity : FlutterActivity() {
                     "followerCount" -> result.success(nativeSyncFollowerCount())
                     "setStereo" -> { nativeSyncSetStereo(call.argument<Boolean>("enabled") ?: false); result.success(null) }
                     "channel" -> result.success(nativeSyncChannel())
+                    "setName" -> { nativeSyncSetName(call.argument<String>("name") ?: "Celular"); result.success(null) }
+                    "followerNames" -> {
+                        val s = nativeSyncFollowerNames()
+                        result.success(if (s.isEmpty()) emptyList<String>() else s.split("\n"))
+                    }
                     "playSynced" -> { nativeSyncLeaderPlay(); result.success(null) }
                     "leave" -> { nativeSyncLeave(); result.success(null) }
                     "joinGroup" -> thread {
+                        nativeSyncSetName(android.os.Build.MODEL) // nome do aparelho p/ o líder
                         val ok = nativeSyncJoin() == 0
                         val leader = if (ok) nativeSyncLeaderEndpoint() else ""
                         if (ok) thread { while (true) { if (nativeSyncWaitPlayOnce() < 0) break } }

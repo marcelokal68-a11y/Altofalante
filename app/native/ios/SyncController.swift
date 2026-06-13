@@ -3,6 +3,7 @@
 //  o início da reprodução no AudioEngineBridge para todos tocarem juntos.
 
 import Foundation
+import UIKit
 
 final class SyncController {
     static let shared = SyncController()
@@ -17,6 +18,16 @@ final class SyncController {
 
     func setStereo(_ on: Bool) { af_sync_set_stereo(sync, on ? 1 : 0) }
     func channel() -> Int { Int(af_sync_channel(sync)) }
+    func setName(_ name: String) { af_sync_set_name(sync, name) }
+
+    /// Nomes dos aparelhos conectados (líder).
+    func followerNames() -> [String] {
+        var buf = [CChar](repeating: 0, count: 1024)
+        let n = af_sync_follower_list(sync, &buf, 1024)
+        if n == 0 { return [] }
+        let s = String(cString: buf)
+        return s.isEmpty ? [] : s.components(separatedBy: "\n")
+    }
 
     func followerCount() -> Int { Int(af_sync_follower_count(sync)) }
 
@@ -32,6 +43,7 @@ final class SyncController {
     func joinGroup(_ completion: @escaping (Bool, String) -> Void) {
         destroy()
         sync = af_sync_create(0, nil)
+        af_sync_set_name(sync, UIDevice.current.name) // nome do aparelho p/ o líder
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let s = self?.sync else { return completion(false, "") }
             let ok = af_sync_join(s, 4000) == 0

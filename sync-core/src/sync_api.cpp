@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 #include <cstdlib>
+#include <cstring>
 #include <unistd.h>
 #include <arpa/inet.h>
 
@@ -32,7 +33,9 @@ struct AfSync {
     std::atomic<bool> running{false};
     UdpSocket data, ann;
     std::mutex mtx;
-    std::vector<Addr> followers;
+    struct Follower { Addr addr; std::string name; };
+    std::vector<Follower> followers;
+    std::string myName = "Celular";
 
     // Seguidor.
     UdpSocket fsock;
@@ -61,8 +64,11 @@ struct AfSync {
                 if (p.type == MSG_HELLO) {
                     std::lock_guard<std::mutex> lk(mtx);
                     bool known = false;
-                    for (auto& f : followers) if (f == from) known = true;
-                    if (!known) followers.push_back(from);
+                    for (auto& f : followers) if (f.addr == from) known = true;
+                    if (!known) {
+                        p.name[sizeof(p.name) - 1] = '\0';
+                        followers.push_back({from, std::string(p.name)});
+                    }
                 } else if (p.type == MSG_PROBE) {
                     Packet r{}; r.type = MSG_PROBE_REPLY; r.seq = p.seq;
                     r.a = p.a; r.b = clk(); r.c = clk();
@@ -94,6 +100,26 @@ double af_sync_now(void) { return monotonicNow(); }
 void af_sync_set_stereo(AfSync* s, int enabled) { s->stereo = enabled != 0; }
 int  af_sync_channel(AfSync* s) { return s->channel; }
 
+void af_sync_set_name(AfSync* s, const char* name) {
+    s->myName = (name && *name) ? std::string(name).substr(0, 23) : "Celular";
+}
+
+int af_sync_follower_list(AfSync* s, char* out, int outLen) {
+    std::lock_guard<std::mutex> lk(s->mtx);
+    std::string joined;
+    for (size_t i = 0; i < s->followers.size(); ++i) {
+        if (i) joined += '\n';
+        joined += s->followers[i].name;
+    }
+    if (out && outLen > 0) {
+        int n = (int)joined.size();
+        if (n >= outLen) n = outLen - 1;
+        memcpy(out, joined.data(), n);
+        out[n] = '\0';
+    }
+    return (int)s->followers.size();
+}
+
 int af_sync_start_leader(AfSync* s) {
     if (!s->data.open() || !s->data.bindPort(0)) return -1;
     if (!s->ann.open()) return -1;
@@ -117,7 +143,7 @@ double af_sync_leader_play(AfSync* s, double leadSeconds, double outputLatency) 
         for (size_t i = 0; i < s->followers.size(); ++i) {
             Packet pl{}; pl.type = MSG_PLAY; pl.a = leaderStart;
             pl.b = s->stereo ? (double)((i % 2 == 0) ? CH_RIGHT : CH_LEFT) : (double)CH_BOTH;
-            s->data.sendTo(&pl, sizeof(pl), s->followers[i]);
+            s->data.sendTo(&pl, sizeof(pl), s->followers[i].addr);
         }
     }
     s->channel = s->stereo ? CH_LEFT : CH_BOTH;
@@ -142,6 +168,7 @@ int af_sync_join(AfSync* s, int timeoutMs) {
 
     if (!s->fsock.open() || !s->fsock.bindPort(0)) return -1;
     Packet hello{}; hello.type = MSG_HELLO;
+    strncpy(hello.name, s->myName.c_str(), sizeof(hello.name) - 1);
     s->fsock.sendTo(&hello, sizeof(hello), s->leaderAddr);
 
     std::vector<sync::Sample> samples;

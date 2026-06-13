@@ -30,8 +30,15 @@ class _HomeScreenState extends State<HomeScreen> {
   final _sync = SyncService.instance;
   bool _turbo = true;
   bool _playing = false;
-  String? _trackName;
+  final List<String> _paths = [];
+  final List<String> _names = [];
+  int _index = 0;
+  Timer? _endTimer;
   DspPreset _preset = DspPreset.balanced;
+
+  String? get _currentName => _paths.isEmpty ? null : _names[_index];
+  String get _subtitle =>
+      _paths.isEmpty ? 'sua biblioteca' : 'faixa ${_index + 1} de ${_paths.length}';
   SyncRole _role = SyncRole.none;
   bool _stereo = false;
   int _channel = 0;
@@ -41,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _countTimer?.cancel();
+    _endTimer?.cancel();
     super.dispose();
   }
 
@@ -72,28 +80,71 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _pickTrack() async {
-    final res = await FilePicker.platform.pickFiles(type: FileType.audio);
-    final path = res?.files.single.path;
-    if (path == null) return;
-    await _engine.load(path);
-    setState(() {
-      _trackName = res!.files.single.name;
-      _playing = false;
-    });
+  /// Escolhe uma ou várias músicas (vira a fila).
+  Future<void> _pickTracks() async {
+    final res = await FilePicker.platform
+        .pickFiles(type: FileType.audio, allowMultiple: true);
+    if (res == null || res.files.isEmpty) return;
+    final picked = res.files.where((f) => f.path != null).toList();
+    _paths
+      ..clear()
+      ..addAll(picked.map((f) => f.path!));
+    _names
+      ..clear()
+      ..addAll(picked.map((f) => f.name));
+    _index = 0;
+    await _engine.load(_paths[_index]);
+    setState(() => _playing = false);
+  }
+
+  Future<void> _startPlayback() async {
+    if (_role == SyncRole.leader) {
+      await _sync.playSynced();          // líder dispara o início em todos juntos
+      _channel = await _sync.channel();
+    } else {
+      await _engine.play();
+    }
+    _startEndTimer();
+    setState(() => _playing = true);
   }
 
   Future<void> _togglePlay() async {
-    if (_trackName == null) return _pickTrack();
+    if (_paths.isEmpty) return _pickTracks();
     if (_playing) {
       await _engine.pause();
-    } else if (_role == SyncRole.leader) {
-      await _sync.playSynced();        // líder dispara o início em todos juntos
-      _channel = await _sync.channel();
+      _endTimer?.cancel();
+      setState(() => _playing = false);
     } else {
-      await _engine.play();            // follower inicia sozinho ou pelo líder
+      await _startPlayback();
     }
-    setState(() => _playing = !_playing);
+  }
+
+  Future<void> _next() async {
+    if (_paths.isEmpty) return;
+    if (_index < _paths.length - 1) {
+      _index++;
+      await _engine.load(_paths[_index]);
+      await _startPlayback();
+    } else {
+      await _engine.pause();
+      _endTimer?.cancel();
+      setState(() => _playing = false);
+    }
+  }
+
+  Future<void> _prev() async {
+    if (_paths.isEmpty) return;
+    _index = _index > 0 ? _index - 1 : 0;
+    await _engine.load(_paths[_index]);
+    await _startPlayback();
+  }
+
+  // Avança a fila sozinho quando a faixa termina.
+  void _startEndTimer() {
+    _endTimer?.cancel();
+    _endTimer = Timer.periodic(const Duration(milliseconds: 500), (_) async {
+      if (_playing && await _engine.isFinished()) _next();
+    });
   }
 
   // --- multi-celular ---
@@ -135,6 +186,36 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _showDevices() async {
+    final names = await _sync.followerNames();
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Brand.surface,
+        title: const Text('Aparelhos conectados'),
+        content: names.isEmpty
+            ? const Text('Nenhum ainda. Peça para abrirem o app e tocarem '
+                '"Entrar num grupo".')
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final n in names)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.smartphone, color: Brand.accent),
+                      title: Text(n),
+                    ),
+                ],
+              ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Fechar')),
+        ],
+      ),
+    );
+  }
+
   Future<void> _leaveGroup() async {
     _countTimer?.cancel();
     await _sync.leave();
@@ -166,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 12),
               const _Header(),
               const SizedBox(height: 20),
-              _NowPlaying(track: _trackName, onTap: _pickTrack),
+              _NowPlaying(track: _currentName, subtitle: _subtitle, onTap: _pickTracks),
               const Spacer(),
               _TurboButton(on: _turbo, onTap: _toggleTurbo),
               const SizedBox(height: 18),
@@ -178,9 +259,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   info: _groupInfo,
                   active: _role != SyncRole.none || _transient != null,
                   onTap: _openSyncSheet,
-                  onLeave: _leaveGroup),
+                  onLeave: _leaveGroup,
+                  onInfoTap: _role == SyncRole.leader ? _showDevices : null),
               const Spacer(),
-              _PlayerControls(playing: _playing, onPlay: _togglePlay),
+              _PlayerControls(
+                  playing: _playing, onPlay: _togglePlay, onPrev: _prev, onNext: _next),
               const SizedBox(height: 16),
             ],
           ),
@@ -220,8 +303,9 @@ class _Header extends StatelessWidget {
 }
 
 class _NowPlaying extends StatelessWidget {
-  const _NowPlaying({required this.track, required this.onTap});
+  const _NowPlaying({required this.track, required this.subtitle, required this.onTap});
   final String? track;
+  final String subtitle;
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) => InkWell(
@@ -242,13 +326,13 @@ class _NowPlaying extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(track ?? 'Toque para escolher uma música',
+                  Text(track ?? 'Toque para escolher músicas',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                           fontSize: 17, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 2),
-                  Text(track == null ? 'sua biblioteca' : 'tocando agora',
+                  Text(subtitle,
                       style: const TextStyle(fontSize: 13, color: Brand.muted)),
                 ],
               ),
@@ -415,11 +499,16 @@ class _Chip extends StatelessWidget {
 
 class _MultiDeviceLink extends StatelessWidget {
   const _MultiDeviceLink(
-      {this.info, required this.active, required this.onTap, required this.onLeave});
+      {this.info,
+      required this.active,
+      required this.onTap,
+      required this.onLeave,
+      this.onInfoTap});
   final String? info;
   final bool active;
   final VoidCallback onTap;
   final VoidCallback onLeave;
+  final VoidCallback? onInfoTap;
 
   @override
   Widget build(BuildContext context) {
@@ -430,9 +519,13 @@ class _MultiDeviceLink extends StatelessWidget {
           const Icon(Icons.podcasts, color: Brand.accent, size: 18),
           const SizedBox(width: 8),
           Flexible(
-            child: Text(info ?? 'Em grupo',
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Brand.accent, fontWeight: FontWeight.w700)),
+            child: GestureDetector(
+              onTap: onInfoTap,
+              child: Text(info ?? 'Em grupo',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: Brand.accent, fontWeight: FontWeight.w700)),
+            ),
           ),
           TextButton(onPressed: onLeave, child: const Text('sair')),
         ],
@@ -505,15 +598,23 @@ class _SyncSheetState extends State<_SyncSheet> {
 }
 
 class _PlayerControls extends StatelessWidget {
-  const _PlayerControls({required this.playing, required this.onPlay});
+  const _PlayerControls(
+      {required this.playing,
+      required this.onPlay,
+      required this.onPrev,
+      required this.onNext});
   final bool playing;
   final VoidCallback onPlay;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
   @override
   Widget build(BuildContext context) => Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.skip_previous, color: Brand.muted, size: 34),
-          const SizedBox(width: 28),
+          IconButton(
+              onPressed: onPrev,
+              icon: const Icon(Icons.skip_previous, color: Brand.muted, size: 34)),
+          const SizedBox(width: 16),
           GestureDetector(
             onTap: onPlay,
             child: Container(
@@ -525,8 +626,10 @@ class _PlayerControls extends StatelessWidget {
                   color: Brand.bg, size: 44),
             ),
           ),
-          const SizedBox(width: 28),
-          const Icon(Icons.skip_next, color: Brand.muted, size: 34),
+          const SizedBox(width: 16),
+          IconButton(
+              onPressed: onNext,
+              icon: const Icon(Icons.skip_next, color: Brand.muted, size: 34)),
         ],
       );
 }

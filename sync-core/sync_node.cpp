@@ -34,6 +34,10 @@ static int runLeader(int expected, double theta, bool stereo) {
         usleep(50000);
     }
 
+    char names[256] = {0};
+    af_sync_follower_list(s, names, sizeof(names));
+    printf("leader: conectados = [%s]\n", names);
+
     double fire = af_sync_leader_play(s, 0.8, 0.0); // latencia 0 no teste
     printf("leader: PLAY enviado (%d seguidores) canal=%s, inicio monotonico=%.6f\n",
            af_sync_follower_count(s), chName(af_sync_channel(s)), fire);
@@ -44,6 +48,8 @@ static int runLeader(int expected, double theta, bool stereo) {
 
 static int runFollower(double theta, double latency, const std::string& resultFile) {
     AfSync* s = af_sync_create(theta, nullptr);
+    char nm[24]; snprintf(nm, sizeof(nm), "dev%+.0f", theta);
+    af_sync_set_name(s, nm);
     if (af_sync_join(s, 4000) != 0) { fprintf(stderr, "follower: nao achou o lider\n"); return 2; }
 
     char ip[64] = {0};
