@@ -1,5 +1,8 @@
 add_executable(process_wav process_wav.cpp)
 target_link_libraries(process_wav PRIVATE altofalante_dsp)
 
+add_executable(analyze_wav analyze_wav.cpp)
+target_link_libraries(analyze_wav PRIVATE altofalante_dsp)
+
 add_executable(test_invariants test_invariants.cpp)
 target_link_libraries(test_invariants PRIVATE altofalante_dsp)

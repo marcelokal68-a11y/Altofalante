@@ -43,4 +43,8 @@ class AudioEngine {
   /// Indica se a faixa atual chegou ao fim (para avancar a fila automaticamente).
   Future<bool> isFinished() async =>
       (await _ch.invokeMethod<bool>('isFinished')) ?? false;
+
+  /// EQ inteligente: analisa a faixa carregada, aplica o melhor preset e o retorna.
+  Future<String> autoPreset() async =>
+      (await _ch.invokeMethod<String>('autoPreset')) ?? 'balanced';
 }

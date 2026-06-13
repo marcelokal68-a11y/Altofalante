@@ -137,6 +137,7 @@
     </div>
 
     <div class="chips" id="chips">
+      <div class="chip" style="border-color:var(--accent);color:var(--accent)" onclick="autoPreset()">✨ Auto</div>
       <div class="chip" data-p="voice" onclick="selPreset(this)">Voz</div>
       <div class="chip sel" data-p="balanced" onclick="selPreset(this)">Equilibrado</div>
       <div class="chip" data-p="bass" onclick="selPreset(this)">Grave+</div>
@@ -268,6 +269,11 @@ function groupText(){
 // ---------- interações ----------
 function toggleTurbo(){ turbo=!turbo; updateAudio(); render(); }
 function selPreset(el){ document.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel')); el.classList.add('sel'); updateAudio(); }
+function autoPreset(){ // simula a analise: cada faixa "sugere" um modo
+  const sug=['balanced','bass','party'][qi]||'balanced';
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('sel',c.dataset.p===sug));
+  updateAudio();
+}
 function togglePlay(){ playing=!playing; if(playing) ensureAudio(); setAudioPlaying(playing); render(); }
 function nextTrack(){ qi=(qi+1)%queue.length; render(); }
 function prevTrack(){ qi=(qi-1+queue.length)%queue.length; render(); }

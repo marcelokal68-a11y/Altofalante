@@ -78,6 +78,22 @@ void af_get_preset_params(AfPreset preset, int sample_rate, AfParams* out);
  */
 void af_process(AfEngine* eng, float* buffer, int frames);
 
+/* ---- EQ inteligente: análise de conteúdo e sugestão de preset ---- */
+
+typedef struct {
+    float low;    /* fração de energia nos graves (<200 Hz), 0..1 */
+    float mid;    /* fração de energia nos médios (200-3k Hz), 0..1 */
+    float high;   /* fração de energia nos agudos (>3k Hz), 0..1 */
+    float crest;  /* fator de crista (pico/RMS) em dB — mede dinâmica */
+} AfAnalysis;
+
+/* Analisa um buffer (offline, não-realtime). Calcula balanço espectral e dinâmica. */
+void af_analyze(const float* interleaved, int frames, int channels,
+                int sample_rate, AfAnalysis* out);
+
+/* Sugere o melhor preset a partir da análise (heurística). */
+AfPreset af_suggest_preset(const AfAnalysis* a);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

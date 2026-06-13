@@ -68,7 +68,10 @@ defasagem < 10 ms em LAN.
       `flutter_native_splash` no `app/pubspec.yaml`.
 - [x] Textos de App Store e Google Play em `docs/LOJAS.md`.
 - [ ] Screenshots no device, política de privacidade publicada, build assinado.
-- [ ] EQ inteligente por gênero, ajuste fino de presets com escuta.
+- [x] **EQ inteligente (protótipo):** analisador de conteúdo (`dsp-core/analyzer.cpp` +
+      `af_analyze`/`af_suggest_preset`) que escolhe o preset por balanço espectral e
+      dinâmica; CLI `analyze_wav` valida (música→Equilibrado, voz→Voz, grave→Festa).
+      Botão "✨ Auto" no app. Calibração fina dos presets pende de áudio real do usuário.
 
 ## Verificação contínua
 Cada mudança no `dsp-core` deve passar pelo `measure.py` e pelos testes de invariante

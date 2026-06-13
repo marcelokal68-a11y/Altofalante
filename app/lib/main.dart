@@ -236,6 +236,15 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.setString('preset', p.name);
   }
 
+  /// EQ inteligente: o app analisa a faixa e escolhe o modo sozinho.
+  Future<void> _autoPreset() async {
+    if (_paths.isEmpty) return;
+    final name = await _engine.autoPreset();
+    final p = DspPreset.values
+        .firstWhere((e) => e.name == name, orElse: () => DspPreset.balanced);
+    setState(() => _preset = p);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -253,7 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 18),
               const _LoudBadge(),
               const SizedBox(height: 24),
-              _Presets(selected: _preset, onSelect: _selectPreset),
+              _Presets(selected: _preset, onSelect: _selectPreset, onAuto: _autoPreset),
               const SizedBox(height: 20),
               _MultiDeviceLink(
                   info: _groupInfo,
@@ -453,15 +462,27 @@ class _LoudBadge extends StatelessWidget {
 }
 
 class _Presets extends StatelessWidget {
-  const _Presets({required this.selected, required this.onSelect});
+  const _Presets({required this.selected, required this.onSelect, required this.onAuto});
   final DspPreset selected;
   final ValueChanged<DspPreset> onSelect;
+  final VoidCallback onAuto;
   @override
   Widget build(BuildContext context) => Wrap(
         spacing: 10,
         runSpacing: 10,
         alignment: WrapAlignment.center,
         children: [
+          GestureDetector(
+            onTap: onAuto,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: Brand.accent)),
+              child: const Text('✨ Auto',
+                  style: TextStyle(fontWeight: FontWeight.w700, color: Brand.accent)),
+            ),
+          ),
           for (final p in DspPreset.values)
             if (p != DspPreset.bypass)
               _Chip(

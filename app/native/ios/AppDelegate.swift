@@ -33,6 +33,7 @@ import AVFoundation
             case "setEnabled": engine.setEnabled((args?["enabled"] as? Bool) ?? true); result(nil)
             case "setPreset":  engine.setPreset((args?["preset"] as? String) ?? "balanced"); result(nil)
             case "isFinished": result(engine.finished)
+            case "autoPreset": result(engine.autoPreset())
             default:           result(FlutterMethodNotImplemented)
             }
         }

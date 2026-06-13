@@ -17,6 +17,8 @@
 
 namespace {
 
+const char* nameFor(AfPreset p); // definida abaixo
+
 class Player : public oboe::AudioStreamDataCallback {
 public:
     oboe::DataCallbackResult onAudioReady(oboe::AudioStream*, void* audioData,
@@ -73,6 +75,17 @@ public:
     void setChannel(int c) { std::lock_guard<std::mutex> lk(mtx_); channel_ = c; }
     bool finished() { std::lock_guard<std::mutex> lk(mtx_); return finished_; }
 
+    // EQ inteligente: analisa a faixa, aplica o melhor preset e retorna o nome.
+    const char* autoPreset() {
+        std::lock_guard<std::mutex> lk(mtx_);
+        if (pcm_.empty() || !dsp_) return "balanced";
+        AfAnalysis an;
+        af_analyze(pcm_.data(), (int)(pcm_.size() / channels_), channels_, sampleRate_, &an);
+        AfPreset p = af_suggest_preset(&an);
+        af_set_preset(dsp_, p);
+        return nameFor(p);
+    }
+
 private:
     void openStream() {
         oboe::AudioStreamBuilder b;
@@ -113,6 +126,16 @@ AfPreset presetFor(const std::string& s) {
     return AF_PRESET_BYPASS;
 }
 
+const char* nameFor(AfPreset p) {
+    switch (p) {
+        case AF_PRESET_VOICE:        return "voice";
+        case AF_PRESET_MUSIC_BASS:   return "bass";
+        case AF_PRESET_PARTY:        return "party";
+        case AF_PRESET_PORTABLE:     return "portable";
+        default:                     return "balanced";
+    }
+}
+
 } // namespace
 
 extern "C" {
@@ -147,6 +170,11 @@ Java_com_altofalante_app_MainActivity_nativeSetPreset(JNIEnv* env, jobject, jstr
 JNIEXPORT jboolean JNICALL
 Java_com_altofalante_app_MainActivity_nativeIsFinished(JNIEnv*, jobject) {
     return g_player.finished() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_altofalante_app_MainActivity_nativeAutoPreset(JNIEnv* env, jobject) {
+    return env->NewStringUTF(g_player.autoPreset());
 }
 
 // ---- multi-celular (sync-core) ----

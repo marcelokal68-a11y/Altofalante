@@ -24,6 +24,7 @@ class MainActivity : FlutterActivity() {
     private external fun nativeSetEnabled(enabled: Boolean)
     private external fun nativeSetPreset(preset: String)
     private external fun nativeIsFinished(): Boolean
+    private external fun nativeAutoPreset(): String
 
     // multi-celular
     private external fun nativeSyncCreateLeader()
@@ -64,6 +65,7 @@ class MainActivity : FlutterActivity() {
                     "setEnabled" -> { nativeSetEnabled(call.argument<Boolean>("enabled") ?: true); result.success(null) }
                     "setPreset" -> { nativeSetPreset(call.argument<String>("preset") ?: "balanced"); result.success(null) }
                     "isFinished" -> result.success(nativeIsFinished())
+                    "autoPreset" -> result.success(nativeAutoPreset())
                     else -> result.notImplemented()
                 }
             }

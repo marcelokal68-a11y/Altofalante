@@ -8,6 +8,7 @@ add_library(altofalante_dsp STATIC
     src/limiter.cpp
     src/presets.cpp
     src/pipeline.cpp
+    src/analyzer.cpp
 )
 
 target_include_directories(altofalante_dsp PUBLIC

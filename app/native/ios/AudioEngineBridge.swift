@@ -73,6 +73,17 @@ final class AudioEngineBridge {
 
     func setPreset(_ name: String) { af_set_preset(dsp, presetFor(name)) }
 
+    /// EQ inteligente: analisa a faixa carregada (canal esquerdo como mono), aplica o
+    /// melhor preset e devolve seu nome.
+    func autoPreset() -> String {
+        guard let buf = buffer, let src = buf.floatChannelData else { return "balanced" }
+        var an = AfAnalysis()
+        af_analyze(src[0], Int32(buf.frameLength), 1, Int32(buf.format.sampleRate), &an)
+        let p = af_suggest_preset(&an)
+        af_set_preset(dsp, p)
+        return nameFor(p)
+    }
+
     // MARK: - Grafo de áudio
 
     private func setupGraph(format: AVAudioFormat) {
@@ -137,6 +148,16 @@ final class AudioEngineBridge {
         case "party":    return AF_PRESET_PARTY
         case "portable": return AF_PRESET_PORTABLE
         default:         return AF_PRESET_BYPASS
+        }
+    }
+
+    private func nameFor(_ p: AfPreset) -> String {
+        switch p {
+        case AF_PRESET_VOICE:          return "voice"
+        case AF_PRESET_MUSIC_BASS:     return "bass"
+        case AF_PRESET_PARTY:          return "party"
+        case AF_PRESET_PORTABLE:       return "portable"
+        default:                       return "balanced"
         }
     }
 }
