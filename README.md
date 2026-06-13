@@ -62,9 +62,15 @@ dsp-core/     # motor de DSP em C++ (lib portátil) — o coração do produto
 sync-core/    # sincronização multi-celular em C++ + simulação (Fase 2)
 tools/        # harness de teste/medição (roda no PC/CI, sem device)
 app/          # esqueleto do app Flutter (Fase 3 — UI + ponte nativa)
+branding/     # logo, ícone, mockup e guia de marca
+docs/         # GUIA.md — como usar, mexer e ensinar
 test-audio/   # amostras geradas (gitignored)
 .github/      # CI (build + testes + prova de valor a cada push)
 ```
+
+## Design & uso
+- Identidade visual e mockups: [`branding/`](branding/) (ver `brand-guide.md`).
+- Como usar o app, mexer no código e ensinar outros: [`docs/GUIA.md`](docs/GUIA.md).
 
 ## Roadmap
 

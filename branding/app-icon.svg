@@ -1,0 +1,33 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A855F7"/>
+      <stop offset="0.55" stop-color="#D946C6"/>
+      <stop offset="1" stop-color="#EC4899"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.32" cy="0.3" r="0.85">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000000" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#glow)"/>
+
+  <g filter="url(#soft)" fill="#ffffff">
+    <!-- corpo / imã do alto-falante -->
+    <rect x="300" y="452" width="74" height="120" rx="20"/>
+    <!-- cone -->
+    <polygon points="362,452 362,572 486,654 486,370"/>
+  </g>
+
+  <!-- ondas sonoras -->
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" filter="url(#soft)">
+    <path d="M455.6 356.4 A220 220 0 0 1 455.6 667.6" stroke-width="44"/>
+    <path d="M519.2 292.8 A310 310 0 0 1 519.2 731.2" stroke-width="40" opacity="0.85"/>
+    <path d="M582.8 229.2 A400 400 0 0 1 582.8 794.8" stroke-width="36" opacity="0.62"/>
+  </g>
+</svg>

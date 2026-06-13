@@ -1,0 +1,31 @@
+<svg width="1500" height="420" viewBox="0 0 1500 420" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="320" y2="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A855F7"/>
+      <stop offset="0.55" stop-color="#D946C6"/>
+      <stop offset="1" stop-color="#EC4899"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="380" y1="0" x2="1480" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F5F3FF"/>
+      <stop offset="1" stop-color="#FBCFE8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- marca -->
+  <g transform="translate(50,50) scale(0.3125)">
+    <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#bg)"/>
+    <g fill="#ffffff">
+      <rect x="300" y="452" width="74" height="120" rx="20"/>
+      <polygon points="362,452 362,572 486,654 486,370"/>
+    </g>
+    <g fill="none" stroke="#ffffff" stroke-linecap="round">
+      <path d="M455.6 356.4 A220 220 0 0 1 455.6 667.6" stroke-width="44"/>
+      <path d="M519.2 292.8 A310 310 0 0 1 519.2 731.2" stroke-width="40" opacity="0.85"/>
+      <path d="M582.8 229.2 A400 400 0 0 1 582.8 794.8" stroke-width="36" opacity="0.6"/>
+    </g>
+  </g>
+
+  <!-- wordmark -->
+  <text x="410" y="248" font-family="'Trebuchet MS', 'DejaVu Sans', sans-serif"
+        font-size="150" font-weight="700" letter-spacing="-5" fill="url(#ink)">alto<tspan font-weight="800" fill="#EC4899">falante</tspan></text>
+</svg>
