@@ -62,9 +62,13 @@ defasagem < 10 ms em LAN.
 **Critério de saída:** build instalável; teste A/B audível no speaker real; sync entre
 2 aparelhos físicos.
 
-## Fase 4 — Polimento e lançamento
-- EQ inteligente por gênero, ajuste fino de presets com escuta, telemetria opcional,
-  publicação nas lojas.
+## Fase 4 — Polimento e lançamento  ◀ INICIADA
+- [x] Assets de loja: ícones (todos os tamanhos), splash, arte de destaque
+      (`branding/icons`, `branding/store`) + config `flutter_launcher_icons` /
+      `flutter_native_splash` no `app/pubspec.yaml`.
+- [x] Textos de App Store e Google Play em `docs/LOJAS.md`.
+- [ ] Screenshots no device, política de privacidade publicada, build assinado.
+- [ ] EQ inteligente por gênero, ajuste fino de presets com escuta.
 
 ## Verificação contínua
 Cada mudança no `dsp-core` deve passar pelo `measure.py` e pelos testes de invariante

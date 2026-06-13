@@ -1,0 +1,16 @@
+<svg width="640" height="760" viewBox="0 0 640 760" xmlns="http://www.w3.org/2000/svg"
+     font-family="'Trebuchet MS','DejaVu Sans',sans-serif">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#A855F7"/><stop offset="0.55" stop-color="#D946C6"/><stop offset="1" stop-color="#EC4899"/>
+    </linearGradient>
+  </defs>
+  <!-- fundo transparente; usar com cor de fundo #0A0A0F no flutter_native_splash -->
+  <g transform="translate(170,90) scale(0.293)">
+    <rect width="1024" height="1024" rx="232" fill="url(#g)"/>
+    <g fill="#fff"><rect x="300" y="452" width="74" height="120" rx="20"/><polygon points="362,452 362,572 486,654 486,370"/></g>
+    <g fill="none" stroke="#fff" stroke-linecap="round"><path d="M455.6 356.4 A220 220 0 0 1 455.6 667.6" stroke-width="46"/><path d="M519.2 292.8 A310 310 0 0 1 519.2 731.2" stroke-width="42" opacity=".85"/></g>
+  </g>
+  <text x="320" y="600" font-size="62" font-weight="800" fill="#F5F3FF" text-anchor="middle">alto<tspan fill="#EC4899">falante</tspan></text>
+  <text x="320" y="650" font-size="24" font-weight="700" fill="#22D3EE" text-anchor="middle">Seu celular, sua caixa de som.</text>
+</svg>

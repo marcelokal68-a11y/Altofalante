@@ -16,6 +16,24 @@ dependencies:
 
 dev_dependencies:
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
 
 flutter:
   uses-material-design: true
+
+# Ícones (dart run flutter_launcher_icons) — assets em ../branding/icons.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "../branding/icons/icon-1024.png"
+  adaptive_icon_background: "#0A0A0F"
+  adaptive_icon_foreground: "../branding/icons/icon-1024.png"
+
+# Splash (dart run flutter_native_splash:create) — assets em ../branding/store.
+flutter_native_splash:
+  color: "#0A0A0F"
+  image: "../branding/store/splash-logo.png"
+  android_12:
+    color: "#0A0A0F"
+    image: "../branding/store/splash-logo.png"

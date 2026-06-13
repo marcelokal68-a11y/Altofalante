@@ -1,0 +1,25 @@
+<svg width="1024" height="500" viewBox="0 0 1024 500" xmlns="http://www.w3.org/2000/svg"
+     font-family="'Trebuchet MS','DejaVu Sans',sans-serif">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#A855F7"/><stop offset="0.55" stop-color="#D946C6"/><stop offset="1" stop-color="#EC4899"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.28" cy="0.5" r="0.6">
+      <stop offset="0" stop-color="#EC4899" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#EC4899" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="500" fill="#0A0A0F"/>
+  <rect width="1024" height="500" fill="url(#glow)"/>
+
+  <!-- icone -->
+  <g transform="translate(70,130) scale(0.235)">
+    <rect width="1024" height="1024" rx="232" fill="url(#g)"/>
+    <g fill="#fff"><rect x="300" y="452" width="74" height="120" rx="20"/><polygon points="362,452 362,572 486,654 486,370"/></g>
+    <g fill="none" stroke="#fff" stroke-linecap="round"><path d="M455.6 356.4 A220 220 0 0 1 455.6 667.6" stroke-width="46"/><path d="M519.2 292.8 A310 310 0 0 1 519.2 731.2" stroke-width="42" opacity=".85"/><path d="M582.8 229.2 A400 400 0 0 1 582.8 794.8" stroke-width="38" opacity=".6"/></g>
+  </g>
+
+  <text x="370" y="225" font-size="78" font-weight="800" fill="#F5F3FF">alto<tspan fill="#EC4899">falante</tspan></text>
+  <text x="372" y="285" font-size="30" font-weight="700" fill="#22D3EE">Seu celular, sua caixa de som.</text>
+  <text x="372" y="330" font-size="22" fill="#9CA3AF">Mais alto e mais limpo — e vários celulares tocam juntos.</text>
+</svg>
