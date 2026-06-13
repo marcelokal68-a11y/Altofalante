@@ -109,6 +109,8 @@ function ensureCtx(){
   comp.connect(shaper); shaper.connect(limiter); limiter.connect(makeup); makeup.connect(out);
   dry.connect(out); out.connect(ctx.destination);
   built=true;
+  // iOS: desbloqueia o audio tocando um buffer silencioso no primeiro gesto
+  try{ const u=ctx.createBufferSource(); u.buffer=ctx.createBuffer(1,1,22050); u.connect(ctx.destination); u.start(0); }catch(e){}
   if(!queue.length){ queue=[{name:'Demonstração (Altofalante)', buffer:makeDemo()}]; renderMeta(); }
   applyPreset();
 }
@@ -149,8 +151,9 @@ function startSource(off){
 }
 function stopSource(){ if(src){ endGuard=true; try{src.stop();}catch(e){} try{src.disconnect();}catch(e){} src=null; } }
 
-async function togglePlay(){
-  ensureCtx(); if(ctx.state==='suspended'){ try{await ctx.resume();}catch(e){} }
+function togglePlay(){
+  ensureCtx();
+  if(ctx.state==='suspended') ctx.resume();   // sem await: inicia no mesmo gesto (iOS)
   if(playing){ offset += ctx.currentTime-startedAt; stopSource(); playing=false; }
   else { offset = offset || 0; startSource(offset); playing=true; }
   render();
