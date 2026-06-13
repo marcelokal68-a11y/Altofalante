@@ -23,6 +23,13 @@ experiência de uma caixa portátil **usando só os celulares que as pessoas já
 3. **Multi-celular** — junte aparelhos para mais volume real.
 4. **Simples** — abrir e já tocar bem, sem precisar mexer em configurações.
 
+## Estratégia por plataforma (ver `06-estrategia.md`)
+- **Android:** turbina **todo** o áudio do sistema (Spotify, YouTube, jogos) via efeitos
+  globais — a promessa original cumprida para a maioria. (`07-android-system-audio.md`)
+- **iOS:** turbina **suas mídias** tocadas no app (músicas baixadas, podcasts, áudios) —
+  a Apple não deixa mexer no som de outros apps.
+- **Ambos:** **multi-celular** — junte aparelhos para volume real (o "uau" das festas).
+
 ## Limites honestos (o que NÃO prometemos)
 - **Não** transformamos o celular numa JBL/Bose de verdade. Um driver minúsculo tem
   limites físicos de SPL e de grave que software nenhum supera.

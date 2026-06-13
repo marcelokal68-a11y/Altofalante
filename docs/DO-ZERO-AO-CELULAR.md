@@ -56,7 +56,9 @@ configurar Xcode (bridging + fontes C++) e Gradle (Oboe + NDK + CMake).
 <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
+<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
 ```
+(`MODIFY_AUDIO_SETTINGS` é para o "amplificar tudo" — efeitos de áudio globais.)
 (No Android, ainda adquira um `MulticastLock` ao usar o multi-celular.)
 
 ### 4. Rodar no celular

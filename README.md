@@ -73,6 +73,14 @@ test-audio/   # amostras geradas (gitignored)
 .github/      # CI (build + testes + prova de valor a cada push)
 ```
 
+## Estratégia (3 pilares)
+- **Android — "amplifique tudo":** efeitos globais turbinam Spotify/YouTube/qualquer som
+  ([`specs/07-android-system-audio.md`](specs/07-android-system-audio.md), `app/native/android/SystemAudioEffects.kt`).
+- **iOS — player honesto:** turbina suas músicas/podcasts tocados no app.
+- **Ambos — multi-celular:** junte aparelhos para volume real (o diferencial de festa).
+
+Detalhes: [`specs/06-estrategia.md`](specs/06-estrategia.md).
+
 ## Design & uso
 - **PWA — app web instalável (funcional)**: [`pwa/`](pwa/) — lança sem Mac/loja (ver `pwa/README.md`).
 - **Do zero ao celular** (PWA ou nativo, passo a passo): [`docs/DO-ZERO-AO-CELULAR.md`](docs/DO-ZERO-AO-CELULAR.md).

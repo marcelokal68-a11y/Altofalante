@@ -64,6 +64,10 @@ Toque suas músicas e transforme qualquer lugar numa festa. 🔊
 **Categoria:** Música e áudio
 **Tags:** amplificador de som, volume booster, equalizador, caixa de som, alto-falante
 
+> **Destaque Android (Pilar 2):** no Android, abra com _"Deixe QUALQUER som do celular
+> mais alto — Spotify, YouTube, jogos — com um toque."_ É o diferencial que o iPhone não
+> tem. No iOS, manter o texto focado em "suas músicas e podcasts" + multi-celular.
+
 ---
 
 ## Textos — App Store

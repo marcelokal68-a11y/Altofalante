@@ -43,6 +43,8 @@ class MainActivity : FlutterActivity() {
         init { System.loadLibrary("altofalante") }
     }
 
+    private val sysFx = SystemAudioEffects() // Pilar 2: turbina o áudio global
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "altofalante/engine")
@@ -92,6 +94,18 @@ class MainActivity : FlutterActivity() {
                         if (ok) thread { while (true) { if (nativeSyncWaitPlayOnce() < 0) break } }
                         runOnUiThread { result.success(mapOf("ok" to ok, "leader" to leader)) }
                     }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // Canal "amplificar TUDO" (efeitos globais — Android exclusivo).
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "altofalante/system")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "enable" -> result.success(sysFx.enable(call.argument<String>("preset") ?: "balanced"))
+                    "setPreset" -> { sysFx.setPreset(call.argument<String>("preset") ?: "balanced"); result.success(null) }
+                    "setGainDb" -> { sysFx.setGainMb(((call.argument<Double>("db") ?: 6.0) * 100).toInt()); result.success(null) }
+                    "disable" -> { sysFx.disable(); result.success(null) }
                     else -> result.notImplemented()
                 }
             }

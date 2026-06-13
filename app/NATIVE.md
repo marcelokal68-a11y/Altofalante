@@ -68,6 +68,15 @@ Pré-requisito: dentro de `app/`, rode uma vez `flutter create .` para gerar `io
 - Resultado: o som que sai do alto-falante já vem turbinado pelo mesmo motor que
   provamos no `tools/demo.sh` (+5 a +6.8 LU, sem clipping).
 
+## Amplificar TUDO no Android (canal `altofalante/system`) — Pilar 2
+Exclusivo Android: turbina o áudio de **qualquer app** (Spotify/YouTube/jogos) via efeitos
+na sessão global. Arquivos: `app/native/android/SystemAudioEffects.kt` (Kotlin puro) +
+handler do canal já em `MainActivity.kt`. Dart: `app/lib/system_boost.dart`.
+- Permissão no Manifest: `<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>`.
+- Mostre o recurso só em Android (`Platform.isAndroid`). No iOS, use o player próprio.
+- Se `enable()` retornar `false` (aparelho bloqueou a sessão 0), caia para o player próprio.
+- Spec: `specs/07-android-system-audio.md`.
+
 ## Multi-celular (canal `altofalante/sync`)
 - O Flutter (`lib/sync_service.dart`) envia: `createGroup`, `joinGroup`, `playSynced`,
   `followerCount`, `leave`.
