@@ -74,6 +74,8 @@ test-audio/   # amostras geradas (gitignored)
 ```
 
 ## Design & uso
+- **PWA — app web instalável (funcional)**: [`pwa/`](pwa/) — lança sem Mac/loja (ver `pwa/README.md`).
+- **Do zero ao celular** (PWA ou nativo, passo a passo): [`docs/DO-ZERO-AO-CELULAR.md`](docs/DO-ZERO-AO-CELULAR.md).
 - **Preview clicável + manual** (abra no navegador): [`preview/altofalante.html`](preview/altofalante.html).
 - Identidade visual e mockups: [`branding/`](branding/) (ver `brand-guide.md`).
 - Como usar o app, mexer no código e ensinar outros: [`docs/GUIA.md`](docs/GUIA.md).

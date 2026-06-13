@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0F">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Altofalante</title>
+<style>
+  :root{--bg:#0A0A0F;--surface:#16161F;--surface2:#1F1F2B;--p2:#EC4899;--accent:#22D3EE;--text:#F5F5FA;--muted:#8B8B99;--grad:linear-gradient(135deg,#A855F7,#D946C6,#EC4899)}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;max-width:460px;margin:0 auto;padding:env(safe-area-inset-top) 22px 30px}
+  .hd{display:flex;align-items:center;gap:9px;padding-top:18px}
+  .ico{width:30px;height:30px;border-radius:8px;background:var(--grad);display:flex;align-items:center;justify-content:center}
+  .wm{font-size:19px;font-weight:800}.wm b{color:var(--p2)}
+  .now{display:flex;align-items:center;gap:13px;margin-top:20px;cursor:pointer}
+  .art{width:54px;height:54px;border-radius:14px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:24px}
+  .now .t{font-size:16px;font-weight:700;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .now .s{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .turbowrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:300px}
+  .turbo{width:200px;height:200px;border-radius:50%;background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:.25s;border:none}
+  .turbo.on{background:var(--grad);box-shadow:0 0 55px rgba(236,72,153,.55)}
+  .eq{display:flex;align-items:center;gap:6px;height:74px}
+  .eq i{width:13px;border-radius:7px;background:var(--muted);height:24px}
+  .turbo.on .eq i{background:#fff;animation:b .9s ease-in-out infinite alternate}
+  .turbo.on .eq i:nth-child(2){animation-delay:.18s}.turbo.on .eq i:nth-child(3){animation-delay:.34s}
+  .turbo.on .eq i:nth-child(4){animation-delay:.5s}.turbo.on .eq i:nth-child(5){animation-delay:.66s}
+  @keyframes b{from{height:18px}to{height:72px}}
+  .turbo .lbl{font-size:21px;font-weight:800;letter-spacing:1px;color:var(--muted)}.turbo.on .lbl{color:#fff}
+  .badge{align-self:center;border:1px solid rgba(34,211,238,.45);background:rgba(34,211,238,.08);color:var(--accent);font-size:12.5px;font-weight:700;padding:7px 15px;border-radius:999px}
+  .chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin-top:18px}
+  .chip{background:var(--surface);border:1px solid #33333f;color:#c8c8d2;font-weight:700;font-size:13.5px;padding:10px 18px;border-radius:999px;cursor:pointer}
+  .chip.sel{background:var(--grad);border-color:transparent;color:#fff}
+  .chip.auto{border-color:var(--accent);color:var(--accent)}
+  .ctrls{display:flex;align-items:center;justify-content:center;gap:22px;margin-top:22px}
+  .skip{font-size:30px;color:var(--muted);cursor:pointer;background:none;border:none}
+  .play{width:78px;height:78px;border-radius:50%;background:#fff;border:none;color:#0A0A0F;font-size:34px;cursor:pointer}
+  .note{color:var(--muted);font-size:11px;text-align:center;margin-top:18px}
+  #install{display:none;margin:14px auto 0;background:var(--surface2);border:1px solid #33333f;color:var(--text);border-radius:999px;padding:9px 18px;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+  <div class="hd">
+    <div class="ico"><svg width="20" height="20" viewBox="0 0 1024 1024"><g fill="#fff"><rect x="300" y="452" width="74" height="120" rx="20"/><polygon points="362,452 362,572 486,654 486,370"/></g><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M455.6 356.4 A220 220 0 0 1 455.6 667.6" stroke-width="46"/><path d="M519.2 292.8 A310 310 0 0 1 519.2 731.2" stroke-width="42" opacity=".85"/></g></svg></div>
+    <div class="wm">alto<b>falante</b></div>
+  </div>
+
+  <div class="now" onclick="pick()">
+    <div class="art">🎵</div>
+    <div>
+      <div class="t" id="title">Toque para escolher músicas</div>
+      <div class="s" id="sub">sua biblioteca</div>
+    </div>
+  </div>
+
+  <div class="turbowrap">
+    <button class="turbo on" id="turbo" onclick="toggleTurbo()">
+      <div class="eq"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="lbl" id="turboLbl">TURBO ON</div>
+    </button>
+    <div class="badge">+6 dB de volume · sem distorcer</div>
+  </div>
+
+  <div class="chips" id="chips">
+    <div class="chip auto" onclick="autoPreset()">✨ Auto</div>
+    <div class="chip" data-p="voice" onclick="selPreset(this)">Voz</div>
+    <div class="chip sel" data-p="balanced" onclick="selPreset(this)">Equilibrado</div>
+    <div class="chip" data-p="bass" onclick="selPreset(this)">Grave+</div>
+    <div class="chip" data-p="party" onclick="selPreset(this)">Festa</div>
+    <div class="chip" data-p="portable" onclick="selPreset(this)">Caixa</div>
+  </div>
+
+  <div class="ctrls">
+    <button class="skip" onclick="prev()">⏮</button>
+    <button class="play" id="playBtn" onclick="togglePlay()">▶</button>
+    <button class="skip" onclick="next()">⏭</button>
+  </div>
+
+  <button id="install" onclick="doInstall()">⬇️ instalar no celular</button>
+  <div class="note">Toque junto com outros celulares está disponível no app nativo.</div>
+
+  <input type="file" id="file" accept="audio/*" multiple style="display:none">
+  <audio id="player" crossorigin="anonymous"></audio>
+
+<script>
+// ===== Presets (espelham dsp-core/src/presets.cpp, adaptados ao WebAudio) =====
+const PRESETS = {
+  voice:    {gain:8, hpf:120, p1:[300,-2,1],   p2:[3000,4,1],   comp:[-24,3,0.005,0.12], ex:0.0,  mk:4},
+  balanced: {gain:8, hpf:80,  p1:[300,-1.5,1], p2:[4000,3,0.9], comp:[-22,2.5,0.01,0.13],ex:0.25, mk:4},
+  bass:     {gain:9, hpf:70,  p1:[120,3,0.8],  p2:[5000,2.5,0.9],comp:[-22,2.7,0.008,0.12],ex:0.4, mk:5},
+  party:    {gain:12,hpf:90,  p1:[250,-2,1],   p2:[4000,3.5,0.9],comp:[-28,4,0.003,0.09], ex:0.35, mk:8},
+  portable: {gain:9, hpf:100, p1:[150,3,0.7],  p2:[6000,4,0.7], comp:[-22,2.5,0.008,0.11],ex:0.35, mk:5},
+};
+const db = v => Math.pow(10, v/20);
+
+let ctx, srcNode, inGain, hpf, pk1, pk2, comp, shaper, limiter, makeup, built=false;
+let turbo=true, preset='balanced', queue=[], qi=0, playing=false;
+const player = document.getElementById('player');
+
+function buildGraph(){
+  if(built) return;
+  ctx = new (window.AudioContext||window.webkitAudioContext)();
+  srcNode = ctx.createMediaElementSource(player);
+  inGain = ctx.createGain();
+  hpf = ctx.createBiquadFilter(); hpf.type='highpass';
+  pk1 = ctx.createBiquadFilter(); pk1.type='peaking';
+  pk2 = ctx.createBiquadFilter(); pk2.type='peaking';
+  comp = ctx.createDynamicsCompressor();
+  shaper = ctx.createWaveShaper();
+  limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value=-2; limiter.ratio.value=20; limiter.attack.value=0.001; limiter.release.value=0.05; limiter.knee.value=0;
+  makeup = ctx.createGain();
+  srcNode.connect(inGain); inGain.connect(hpf); hpf.connect(pk1); pk1.connect(pk2);
+  pk2.connect(comp); comp.connect(shaper); shaper.connect(limiter); limiter.connect(makeup);
+  built=true;
+  applyChain();
+}
+function exciterCurve(amount){
+  const n=1024, c=new Float32Array(n), k=1+amount*4;
+  for(let i=0;i<n;i++){ const x=i/(n-1)*2-1; c[i]=Math.tanh(k*x)/Math.tanh(k); }
+  return c;
+}
+function applyChain(){
+  if(!built) return;
+  if(!turbo){ // bypass
+    try{srcNode.disconnect();}catch(e){} srcNode.connect(ctx.destination);
+    return;
+  }
+  try{srcNode.disconnect();}catch(e){} srcNode.connect(inGain);
+  try{makeup.disconnect();}catch(e){} makeup.connect(ctx.destination);
+  const P=PRESETS[preset];
+  inGain.gain.value=db(P.gain);
+  hpf.frequency.value=P.hpf||10;
+  pk1.frequency.value=P.p1[0]; pk1.gain.value=P.p1[1]; pk1.Q.value=P.p1[2];
+  pk2.frequency.value=P.p2[0]; pk2.gain.value=P.p2[1]; pk2.Q.value=P.p2[2];
+  comp.threshold.value=P.comp[0]; comp.ratio.value=P.comp[1]; comp.attack.value=P.comp[2]; comp.release.value=P.comp[3]; comp.knee.value=6;
+  shaper.curve=exciterCurve(P.ex);
+  makeup.gain.value=db(P.mk - 6); // -6 de margem para o limitador/headroom
+}
+
+// ===== transporte / fila =====
+function pick(){ document.getElementById('file').click(); }
+document.getElementById('file').addEventListener('change', e=>{
+  const files=[...e.target.files]; if(!files.length) return;
+  queue=files.map(f=>({name:f.name.replace(/\.[^.]+$/,''), url:URL.createObjectURL(f), file:f}));
+  qi=0; load();
+});
+function load(){
+  if(!queue.length) return;
+  player.src=queue[qi].url;
+  document.getElementById('title').textContent=queue[qi].name;
+  document.getElementById('sub').textContent='faixa '+(qi+1)+' de '+queue.length;
+}
+async function togglePlay(){
+  if(!queue.length) return pick();
+  buildGraph(); if(ctx.state==='suspended') await ctx.resume();
+  if(playing){ player.pause(); } else { await player.play(); }
+  playing=!playing; render();
+}
+function next(){ if(!queue.length)return; if(qi<queue.length-1){qi++; load(); if(playing)player.play();} }
+function prev(){ if(!queue.length)return; qi=qi>0?qi-1:0; load(); if(playing)player.play(); }
+player.addEventListener('ended', next);
+
+function toggleTurbo(){ turbo=!turbo; applyChain(); render(); }
+function selPreset(el){ preset=el.dataset.p; document.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel')); el.classList.add('sel'); applyChain(); }
+
+// ===== EQ inteligente (mesma heuristica do dsp-core) =====
+async function autoPreset(){
+  if(!queue.length) return;
+  const buf=await queue[qi].file.arrayBuffer();
+  const ac=new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1,44100,44100);
+  const ab=await ac.decodeAudioData(buf);
+  const d=ab.getChannelData(0), sr=ab.sampleRate;
+  // bandas via one-pole simples + crista
+  let lo=0,mid=0,hi=0,sq=0,peak=0, lp=0, hp=0;
+  const aL=Math.exp(-2*Math.PI*200/sr), aH=Math.exp(-2*Math.PI*3000/sr);
+  for(let i=0;i<d.length;i+=2){ const x=d[i];
+    lp=aL*lp+(1-aL)*x; const low=lp; const up=x-lp; hp=aH*hp+(1-aH)*up; const high=up-hp; const md=up-high;
+    lo+=low*low; mid+=md*md; hi+=high*high; sq+=x*x; const a=Math.abs(x); if(a>peak)peak=a;
+  }
+  const sum=lo+mid+hi||1e-9, L=lo/sum,M=mid/sum,H=hi/sum;
+  const rms=Math.sqrt(sq/(d.length/2)); const crest=20*Math.log10((peak+1e-9)/(rms+1e-9));
+  let p='balanced';
+  if(L>0.5) p=crest>12?'party':'bass';
+  else if(M>0.55&&H<0.20&&crest<10) p='voice';
+  else if(H>0.28) p='portable';
+  preset=p;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('sel',c.dataset.p===p));
+  applyChain();
+}
+
+function render(){
+  document.getElementById('turbo').classList.toggle('on',turbo);
+  document.getElementById('turboLbl').textContent='TURBO '+(turbo?'ON':'OFF');
+  document.getElementById('playBtn').textContent=playing?'⏸':'▶';
+}
+
+// ===== PWA: service worker + instalacao =====
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+let deferred;
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferred=e; document.getElementById('install').style.display='block'; });
+function doInstall(){ if(deferred){ deferred.prompt(); deferred=null; document.getElementById('install').style.display='none'; } }
+render();
+</script>
+</body>
+</html>
