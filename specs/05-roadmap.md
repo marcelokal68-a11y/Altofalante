@@ -47,12 +47,14 @@ passam. ✅ Prova de valor da Fase 1 concluída.
 **Critério de saída (no device):** dois aparelhos físicos tocam em sincronia com
 defasagem < 10 ms em LAN.
 
-## Fase 3 — App Flutter (no device)  ◀ ESQUELETO CONCLUÍDO
+## Fase 3 — App Flutter (no device)  ◀ EM ANDAMENTO
 - [x] Esqueleto do app: tela única (Turbo + presets + play), cliente do MethodChannel
-      (`app/lib/`), persistência de preset.
-- [ ] Gerar pastas nativas (`flutter create .`).
-- [ ] Cabear `dsp-core` via AVAudioEngine (iOS) e Oboe (Android) no MethodChannel.
-- [ ] Integração do módulo de sync.
+      (`app/lib/`), persistência de preset; tema + branding aplicados.
+- [x] **Ponte nativa escrita** (`app/native/` + `app/NATIVE.md`): iOS (AVAudioEngine +
+      AVAudioSourceNode) e Android (Oboe + JNI + MediaCodec) hospedando o `dsp-core`.
+- [ ] Gerar pastas nativas (`flutter create .`) e integrar os arquivos (na máquina do dev).
+- [ ] Verificar no device: A/B audível no alto-falante real.
+- [ ] Integração do módulo de sync (`sync-core`) dentro do app.
 **Critério de saída:** build instalável; teste A/B audível no speaker real; sync entre
 2 aparelhos físicos.
 

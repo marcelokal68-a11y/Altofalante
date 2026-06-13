@@ -81,7 +81,9 @@ test-audio/   # amostras geradas (gitignored)
   latência sobre **rede UDP real**: 3 nós sincronizam a **~0.01 ms**
   (`bash tools/sync_net_test.sh`), mesmo com relógios dessincronizados em dezenas de
   segundos. Falta só apontar para a interface Wi-Fi no device.
-- **Fase 3 — App Flutter** 🚧 esqueleto pronto em [`app/`](app/) (tela única + ponte
-  para o motor nativo); falta gerar as pastas nativas e cabear AVAudioEngine/Oboe.
+- **Fase 3 — App Flutter** 🚧 UI + branding prontos e **ponte nativa escrita**
+  ([`app/native/`](app/native/) — AVAudioEngine no iOS, Oboe+JNI no Android, hospedando
+  o `dsp-core`). Falta integrar no Xcode/Android Studio e verificar no device
+  (ver [`app/NATIVE.md`](app/NATIVE.md)).
 
 Ver [`specs/05-roadmap.md`](specs/05-roadmap.md).

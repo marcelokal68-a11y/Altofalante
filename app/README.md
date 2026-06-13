@@ -18,18 +18,13 @@ flutter pub get
 flutter run                     # com um device/emulador conectado
 ```
 
-## Cabeamento do motor nativo (a fazer na Fase 3)
+## Cabeamento do motor nativo
 
-O `MethodChannel('altofalante/engine')` (ver `lib/audio_engine.dart`) precisa de uma
-implementação nativa que hospede o `dsp-core`:
-
-- **iOS (Swift):** `AVAudioEngine` com um *render callback* / `AVAudioSourceNode` que,
-  a cada buffer, chama `af_process(...)` do `dsp-core`. Métodos do canal: `load`,
-  `play`, `pause`, `setEnabled`, `setPreset`. Linkar o C++ via um *bridging* objc++/
-  CocoaPods apontando para `../dsp-core`.
-- **Android (Kotlin + C++):** `Oboe`/`AAudio` num `AudioStream` callback chamando
-  `af_process(...)` via JNI. Linkar `../dsp-core` no `CMakeLists.txt` do módulo
-  (`externalNativeBuild`).
+O código nativo que hospeda o `dsp-core` **já está escrito** em
+[`native/`](native/): iOS (`AVAudioEngine` + `AVAudioSourceNode`) e Android
+(`Oboe` + JNI), ambos chamando `af_process(...)` a cada bloco. O passo a passo de
+integração (Xcode/Android Studio, Gradle, dependência do Oboe) está em
+[`NATIVE.md`](NATIVE.md).
 
 O contrato C do motor está em
 [`../dsp-core/include/altofalante/dsp.h`](../dsp-core/include/altofalante/dsp.h).
