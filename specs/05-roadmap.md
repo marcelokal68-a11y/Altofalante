@@ -54,7 +54,9 @@ defasagem < 10 ms em LAN.
       AVAudioSourceNode) e Android (Oboe + JNI + MediaCodec) hospedando o `dsp-core`.
 - [ ] Gerar pastas nativas (`flutter create .`) e integrar os arquivos (na máquina do dev).
 - [ ] Verificar no device: A/B audível no alto-falante real.
-- [ ] Integração do módulo de sync (`sync-core`) dentro do app.
+- [x] **Integração do sync no app:** API C (`sync-core/sync_api.h`), serviço Dart
+      (`app/lib/sync_service.dart`) + UX "tocar junto", e ponte nativa
+      (`SyncController.swift` / `nativeSync*` no Android) que agenda o início junto.
 **Critério de saída:** build instalável; teste A/B audível no speaker real; sync entre
 2 aparelhos físicos.
 

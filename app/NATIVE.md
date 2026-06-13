@@ -14,14 +14,15 @@ Pré-requisito: dentro de `app/`, rode uma vez `flutter create .` para gerar `io
 1. **Copie os arquivos** de `app/native/ios/` para `app/ios/Runner/`:
    - `AppDelegate.swift` (substitui o gerado)
    - `AudioEngineBridge.swift`
+   - `SyncController.swift` (multi-celular)
    - `Runner-Bridging-Header.h`
-2. **Adicione o dsp-core ao projeto** (no Xcode, `Runner.xcworkspace`):
-   - Arraste a pasta `dsp-core/src` para o target **Runner** (marque "Copy if needed"
-     desmarcado; "Create groups"). Os `.cpp` entram na compilação.
+2. **Adicione o dsp-core e o sync-core ao projeto** (no Xcode, `Runner.xcworkspace`):
+   - Arraste `dsp-core/src` e `sync-core/src` para o target **Runner**
+     ("Create groups"). Os `.cpp` entram na compilação.
 3. **Build Settings do target Runner:**
    - **Objective-C Bridging Header:** `Runner/Runner-Bridging-Header.h`
-   - **Header Search Paths:** adicione o caminho até `dsp-core/include`
-     (ex.: `$(SRCROOT)/../../dsp-core/include`).
+   - **Header Search Paths:** adicione `dsp-core/include` **e** `sync-core/include`
+     (ex.: `$(SRCROOT)/../../dsp-core/include` e `.../sync-core/include`).
    - **C++ Language Dialect:** `GNU++17` (ou C++17).
 4. **Rode:** `flutter run` com um iPhone conectado. Escolha uma música, ligue o **Turbo**.
 
@@ -66,6 +67,19 @@ Pré-requisito: dentro de `app/`, rode uma vez `flutter create .` para gerar `io
 - Android: callback do `Oboe` faz o mesmo, sobre o PCM decodificado pelo `MediaCodec`.
 - Resultado: o som que sai do alto-falante já vem turbinado pelo mesmo motor que
   provamos no `tools/demo.sh` (+5 a +6.8 LU, sem clipping).
+
+## Multi-celular (canal `altofalante/sync`)
+- O Flutter (`lib/sync_service.dart`) envia: `createGroup`, `joinGroup`, `playSynced`,
+  `followerCount`, `leave`.
+- O nativo dirige a **API C do sync-core** (`altofalante/sync_api.h`):
+  - **Líder:** `af_sync_start_leader` (anuncia + atende sondas); no play,
+    `af_sync_leader_play` retorna o instante monotônico e agenda `playAt(...)`.
+  - **Seguidor:** `af_sync_join` (descobre + sincroniza) e, numa thread,
+    `af_sync_wait_play` agenda o início junto.
+- iOS: `SyncController.swift`. Android: funções `nativeSync*` em `native-lib.cpp` +
+  canal no `MainActivity.kt`. O Android já inclui o `sync-core/src` no `CMakeLists.txt`.
+- **Para rodar entre celulares reais:** ajuste a interface multicast (loopback → Wi-Fi)
+  — defina a env `AF_IFACE` ou edite `MCAST_IFACE` em `sync-core/src/protocol.h`.
 
 ## Limitações do protótipo (próximos refinamentos)
 - O áudio é decodificado inteiro para a memória (ok para músicas; depois, streaming).

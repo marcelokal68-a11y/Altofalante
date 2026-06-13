@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'audio_engine.dart';
+import 'sync_service.dart';
 import 'theme.dart';
 
 void main() => runApp(const AltofalanteApp());
@@ -25,10 +26,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _engine = AudioEngine.instance;
+  final _sync = SyncService.instance;
   bool _turbo = true;
   bool _playing = false;
   String? _trackName;
   DspPreset _preset = DspPreset.balanced;
+  SyncRole _role = SyncRole.none;
+  String? _groupInfo;
 
   @override
   void initState() {
@@ -59,8 +63,78 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _togglePlay() async {
     if (_trackName == null) return _pickTrack();
-    _playing ? await _engine.pause() : await _engine.play();
+    if (_playing) {
+      await _engine.pause();
+    } else if (_role == SyncRole.leader) {
+      await _sync.playSynced(); // líder dispara o início em todos juntos
+    } else {
+      await _engine.play();     // follower inicia sozinho ou pelo líder
+    }
     setState(() => _playing = !_playing);
+  }
+
+  // --- multi-celular ---
+
+  void _openSyncSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Brand.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Tocar junto com outros celulares',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            const Text('Todos na mesma Wi-Fi. Um vira o comando, os outros entram.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Brand.muted, fontSize: 13)),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: () { Navigator.pop(context); _createGroup(); },
+              icon: const Icon(Icons.podcasts),
+              label: const Text('Criar grupo (sou o comando)'),
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () { Navigator.pop(context); _joinGroup(); },
+              icon: const Icon(Icons.wifi_find),
+              label: const Text('Entrar num grupo'),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 52)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _createGroup() async {
+    await _sync.createGroup();
+    setState(() { _role = SyncRole.leader; _groupInfo = 'Você é o comando'; });
+  }
+
+  Future<void> _joinGroup() async {
+    setState(() => _groupInfo = 'Procurando na rede…');
+    final res = await _sync.joinGroup();
+    setState(() {
+      if (res['ok'] == true) {
+        _role = SyncRole.follower;
+        _groupInfo = 'Conectado a ${res['leader'] ?? 'um comando'}';
+      } else {
+        _groupInfo = 'Nenhum grupo encontrado';
+      }
+    });
+  }
+
+  Future<void> _leaveGroup() async {
+    await _sync.leave();
+    setState(() { _role = SyncRole.none; _groupInfo = null; });
   }
 
   Future<void> _toggleTurbo() async {
@@ -94,7 +168,11 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 24),
               _Presets(selected: _preset, onSelect: _selectPreset),
               const SizedBox(height: 20),
-              const _MultiDeviceLink(),
+              _MultiDeviceLink(
+                  info: _groupInfo,
+                  active: _role != SyncRole.none,
+                  onTap: _openSyncSheet,
+                  onLeave: _leaveGroup),
               const Spacer(),
               _PlayerControls(playing: _playing, onPlay: _togglePlay),
               const SizedBox(height: 16),
@@ -330,17 +408,37 @@ class _Chip extends StatelessWidget {
 }
 
 class _MultiDeviceLink extends StatelessWidget {
-  const _MultiDeviceLink();
+  const _MultiDeviceLink(
+      {this.info, required this.active, required this.onTap, required this.onLeave});
+  final String? info;
+  final bool active;
+  final VoidCallback onTap;
+  final VoidCallback onLeave;
+
   @override
-  Widget build(BuildContext context) => TextButton.icon(
-        onPressed: () {
-          // Fase 2: abrir fluxo de pareamento multi-celular.
-        },
-        icon: const Icon(Icons.add, color: Brand.accent, size: 18),
-        label: const Text('tocar junto com outro celular',
-            style: TextStyle(
-                color: Brand.accent, fontWeight: FontWeight.w700)),
+  Widget build(BuildContext context) {
+    if (active) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.podcasts, color: Brand.accent, size: 18),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(info ?? 'Em grupo',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Brand.accent, fontWeight: FontWeight.w700)),
+          ),
+          TextButton(onPressed: onLeave, child: const Text('sair')),
+        ],
       );
+    }
+    return TextButton.icon(
+      onPressed: onTap,
+      icon: const Icon(Icons.add, color: Brand.accent, size: 18),
+      label: const Text('tocar junto com outro celular',
+          style: TextStyle(color: Brand.accent, fontWeight: FontWeight.w700)),
+    );
+  }
 }
 
 class _PlayerControls extends StatelessWidget {

@@ -24,6 +24,15 @@ class MainActivity : FlutterActivity() {
     private external fun nativeSetEnabled(enabled: Boolean)
     private external fun nativeSetPreset(preset: String)
 
+    // multi-celular
+    private external fun nativeSyncCreateLeader()
+    private external fun nativeSyncFollowerCount(): Int
+    private external fun nativeSyncLeaderPlay()
+    private external fun nativeSyncJoin(): Int
+    private external fun nativeSyncLeaderEndpoint(): String
+    private external fun nativeSyncWaitPlayOnce(): Double
+    private external fun nativeSyncLeave()
+
     companion object {
         init { System.loadLibrary("altofalante") }
     }
@@ -49,6 +58,24 @@ class MainActivity : FlutterActivity() {
                     "pause" -> { nativePause(); result.success(null) }
                     "setEnabled" -> { nativeSetEnabled(call.argument<Boolean>("enabled") ?: true); result.success(null) }
                     "setPreset" -> { nativeSetPreset(call.argument<String>("preset") ?: "balanced"); result.success(null) }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // Canal do multi-celular.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "altofalante/sync")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "createGroup" -> { nativeSyncCreateLeader(); result.success(null) }
+                    "followerCount" -> result.success(nativeSyncFollowerCount())
+                    "playSynced" -> { nativeSyncLeaderPlay(); result.success(null) }
+                    "leave" -> { nativeSyncLeave(); result.success(null) }
+                    "joinGroup" -> thread {
+                        val ok = nativeSyncJoin() == 0
+                        val leader = if (ok) nativeSyncLeaderEndpoint() else ""
+                        if (ok) thread { while (true) { if (nativeSyncWaitPlayOnce() < 0) break } }
+                        runOnUiThread { result.success(mapOf("ok" to ok, "leader" to leader)) }
+                    }
                     else -> result.notImplemented()
                 }
             }

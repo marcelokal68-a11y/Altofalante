@@ -9,8 +9,11 @@
 #include <oboe/Oboe.h>
 #include <vector>
 #include <mutex>
+#include <thread>
 #include <cstring>
+#include <unistd.h>
 #include "altofalante/dsp.h"
+#include "altofalante/sync_api.h"
 
 namespace {
 
@@ -48,6 +51,17 @@ public:
 
     void play()  { std::lock_guard<std::mutex> lk(mtx_); playing_ = true;  if (stream_) stream_->requestStart(); }
     void pause() { std::lock_guard<std::mutex> lk(mtx_); playing_ = false; }
+
+    /// Inicia no instante monotonico `at` (mesmo relogio do sync-core) — multi-celular.
+    void playAt(double at) {
+        std::thread([this, at]() {
+            while (af_sync_now() < at) {
+                double rem = at - af_sync_now();
+                if (rem > 0.002) usleep((useconds_t)((rem - 0.001) * 1e6));
+            }
+            play();
+        }).detach();
+    }
     void setEnabled(bool on) { af_set_enabled(dsp_, on ? 1 : 0); }
     void setPreset(AfPreset p) { af_set_preset(dsp_, p); }
 
@@ -77,6 +91,8 @@ private:
 };
 
 Player g_player;
+AfSync* g_sync = nullptr;
+const double kOutputLatency = 0.0; // ajuste fino por device, se necessario
 
 AfPreset presetFor(const std::string& s) {
     if (s == "voice")    return AF_PRESET_VOICE;
@@ -116,6 +132,56 @@ Java_com_altofalante_app_MainActivity_nativeSetPreset(JNIEnv* env, jobject, jstr
     const char* s = env->GetStringUTFChars(name, nullptr);
     g_player.setPreset(presetFor(s));
     env->ReleaseStringUTFChars(name, s);
+}
+
+// ---- multi-celular (sync-core) ----
+
+JNIEXPORT void JNICALL
+Java_com_altofalante_app_MainActivity_nativeSyncCreateLeader(JNIEnv*, jobject) {
+    if (g_sync) af_sync_destroy(g_sync);
+    g_sync = af_sync_create(0, nullptr);
+    af_sync_start_leader(g_sync);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_altofalante_app_MainActivity_nativeSyncFollowerCount(JNIEnv*, jobject) {
+    return g_sync ? af_sync_follower_count(g_sync) : 0;
+}
+
+JNIEXPORT void JNICALL
+Java_com_altofalante_app_MainActivity_nativeSyncLeaderPlay(JNIEnv*, jobject) {
+    if (!g_sync) return;
+    double fire = af_sync_leader_play(g_sync, 0.8, kOutputLatency);
+    g_player.playAt(fire);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_altofalante_app_MainActivity_nativeSyncJoin(JNIEnv*, jobject) {
+    if (g_sync) af_sync_destroy(g_sync);
+    g_sync = af_sync_create(0, nullptr);
+    return af_sync_join(g_sync, 4000);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_altofalante_app_MainActivity_nativeSyncLeaderEndpoint(JNIEnv* env, jobject) {
+    char ip[64] = {0};
+    int port = g_sync ? af_sync_leader_endpoint(g_sync, ip, sizeof(ip)) : -1;
+    char out[80]; snprintf(out, sizeof(out), "%s:%d", ip, port);
+    return env->NewStringUTF(out);
+}
+
+// Bloqueia ate o proximo PLAY; agenda o inicio. Chamar em laco numa thread Kotlin.
+JNIEXPORT jdouble JNICALL
+Java_com_altofalante_app_MainActivity_nativeSyncWaitPlayOnce(JNIEnv*, jobject) {
+    if (!g_sync) return -1;
+    double fire = af_sync_wait_play(g_sync, kOutputLatency, 60000);
+    if (fire >= 0) g_player.playAt(fire);
+    return fire;
+}
+
+JNIEXPORT void JNICALL
+Java_com_altofalante_app_MainActivity_nativeSyncLeave(JNIEnv*, jobject) {
+    if (g_sync) { af_sync_destroy(g_sync); g_sync = nullptr; }
 }
 
 } // extern "C"

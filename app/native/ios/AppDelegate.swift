@@ -36,6 +36,21 @@ import AVFoundation
             }
         }
 
+        // Canal do multi-celular.
+        let syncChannel = FlutterMethodChannel(name: "altofalante/sync",
+                                               binaryMessenger: controller.binaryMessenger)
+        let sync = SyncController.shared
+        syncChannel.setMethodCallHandler { call, result in
+            switch call.method {
+            case "createGroup":    sync.createGroup(); result(nil)
+            case "followerCount":  result(sync.followerCount())
+            case "playSynced":     sync.playSynced(); result(nil)
+            case "joinGroup":      sync.joinGroup { ok, info in result(["ok": ok, "leader": info]) }
+            case "leave":          sync.leave(); result(nil)
+            default:               result(FlutterMethodNotImplemented)
+            }
+        }
+
         GeneratedPluginRegistrant.register(with: self)
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }

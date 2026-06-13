@@ -50,6 +50,19 @@ final class AudioEngineBridge {
         if !engine.isRunning { try? engine.start() }
     }
 
+    /// Inicia a reprodução exatamente no instante monotônico `at` (segundos do mesmo
+    /// CLOCK_MONOTONIC do sync-core). Usado pelo multi-celular para começar junto.
+    func playAt(_ at: Double) {
+        if !engine.isRunning { try? engine.start() }
+        DispatchQueue.global(qos: .userInteractive).async { [weak self] in
+            while af_sync_now() < at {
+                let rem = at - af_sync_now()
+                if rem > 0.002 { usleep(useconds_t((rem - 0.001) * 1_000_000)) }
+            }
+            self?.playing = true
+        }
+    }
+
     func pause() { playing = false }
 
     func setEnabled(_ on: Bool) { af_set_enabled(dsp, on ? 1 : 0) }

@@ -1,8 +1,10 @@
 # Biblioteca de sincronizacao multi-celular (portatil).
+find_package(Threads REQUIRED)
 add_library(altofalante_sync STATIC
     src/clock_sync.cpp
     src/scheduler.cpp
     src/net.cpp
+    src/sync_api.cpp
 )
 target_include_directories(altofalante_sync PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -10,6 +12,7 @@ target_include_directories(altofalante_sync PUBLIC
 target_include_directories(altofalante_sync PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+target_link_libraries(altofalante_sync PUBLIC Threads::Threads)
 set_target_properties(altofalante_sync PROPERTIES
     CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON POSITION_INDEPENDENT_CODE ON
 )

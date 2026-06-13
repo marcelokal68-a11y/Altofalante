@@ -3,3 +3,4 @@
 //  Configure este arquivo em: Build Settings > Objective-C Bridging Header.
 
 #import "dsp.h"
+#import "sync_api.h"
