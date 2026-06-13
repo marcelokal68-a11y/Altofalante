@@ -1,0 +1,15 @@
+build/
+.git/
+app/
+dsp-core/
+sync-core/
+tools/
+specs/
+docs/
+branding/
+preview/
+test-audio/
+.github/
+CMakeLists.txt
+README.md
+.gitignore
