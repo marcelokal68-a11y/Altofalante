@@ -1,17 +1,19 @@
-# Publica a PWA (pasta pwa/) no GitHub Pages.
-# Para ativar: repо → Settings → Pages → Source: "GitHub Actions".
-# Depois rode este workflow (aba Actions → Run workflow) ou faça merge na main.
+# Publica a PWA (pasta pwa/) no GitHub Pages — ativa o Pages automaticamente.
 name: Deploy PWA (GitHub Pages)
 
 on:
   push:
-    branches: [main]
+    branches: [main, claude/mobile-audio-amplifier-5avxxf]
   workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -22,6 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: pwa
