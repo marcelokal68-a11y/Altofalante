@@ -47,8 +47,14 @@ Filtros configuráveis (tipo, freq, Q, ganho). Presets típicos:
 - No-op se a entrada for mono.
 
 ### 6. Limitador true-peak
-- `ceiling_dbtp` (default -1.0 dBTP), `release_ms`.
-- Look-ahead curto + detecção de pico para impedir overshoot inter-amostra.
+- `ceiling` (default **-3.0 dBFS**), `release_ms`, look-ahead ~2 ms.
+- **Detecção de pico inter-amostra por superamostragem 4×** (FIR sinc janelada): o
+  ganho é calculado a partir do *true-peak*, não só do pico de amostra — evita o
+  clipping inter-amostra que aparece em material com transientes (bumbo/caixa/chimbal).
+- Teto conservador (-3 dBFS) garante **true-peak ≤ -1 dBTP** em áudio realista
+  (bandlimitado). _Aprendizado:_ um WAV imitando música real (`tools/gen_mimic_song.py`)
+  revelou que o limitador por amostra deixava o true-peak estourar (+3 dBTP) — daí a
+  superamostragem. Sinais de teste devem ser bandlimitados (como áudio real).
 - **Invariante:** nenhuma amostra de saída ultrapassa o teto.
 
 ## Presets (v1)

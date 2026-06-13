@@ -38,6 +38,7 @@ def music(t):
     for s in range(0, len(t), step):
         e = min(s + int(SR * 0.04), len(t))
         hat[s:e] += np.random.randn(e - s) * np.exp(-np.linspace(0, 1, e - s) * 18)
+    hat = np.convolve(hat, np.ones(5) / 5, mode="same")  # limita banda (audio real)
     high = 0.5 * hat + 0.12 * np.sin(2 * np.pi * 6000 * t)
     mono = bass + mid + high
     side = 0.06 * np.sin(2 * np.pi * 2500 * t + 0.5)

@@ -73,12 +73,18 @@ public:
     void reset();
     void process(float* L, float* R, int n, int ch);
 private:
+    float truePeak(int ch);   // pico inter-amostra (superamostragem 4x)
     float ceiling_ = 0.891f; // ~ -1 dBFS
     float atk_ = 0.0f, rel_ = 0.0f;
     float gain_ = 1.0f;
     int   la_ = 0;            // look-ahead em amostras
     std::vector<float> dl_[2];
     int   widx_ = 0;
+    // Detecção de pico inter-amostra (true-peak) por superamostragem 4x.
+    static const int TPT = 16; // taps por fase (interpolação 4x)
+    std::vector<float> hist_[2];
+    int   hpos_ = 0;
+    float coef_[4][TPT];
 };
 
 } // namespace af

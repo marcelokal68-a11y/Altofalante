@@ -14,13 +14,18 @@ para formar um sistema de som maior. Sem precisar de gadget externo.
 O coração do produto (o motor de DSP) está implementado e **provado de forma medível**,
 sem precisar de iPhone/Android. Resultado na amostra de teste:
 
+Numa **música sintetizada realista** (`tools/gen_mimic_song.py`, com bateria/baixo/
+acordes/melodia):
+
 | Preset    | LUFS   | True-peak  | ΔLUFS (mais alto) |
 |-----------|--------|------------|-------------------|
-| entrada   | -15.3  | -6.0 dBTP  | —                 |
-| balanced  | -10.0  | -1.5 dBTP  | **+5.3**          |
-| portable  |  -8.5  | -1.4 dBTP  | **+6.8**          |
+| entrada   | -21.2  | -3.0 dBTP  | —                 |
+| balanced  | -14.6  | -2.1 dBTP  | **+6.6**          |
+| bass      | -12.9  | -1.7 dBTP  | **+8.3**          |
+| portable  | -13.4  | -1.7 dBTP  | **+7.8**          |
 
-Loudness **+5 a +6.8 LU mais alto, sem clipping** (todos ≤ -1 dBTP).
+Loudness **+6.5 a +8.3 LU mais alto, sem clipping** (todos ≤ -1 dBTP), graças ao
+limitador true-peak com superamostragem 4×.
 
 ## Arquitetura
 

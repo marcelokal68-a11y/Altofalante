@@ -14,7 +14,7 @@ extern "C" void af_get_preset_params(AfPreset preset, int /*sample_rate*/, AfPar
     }
     o->exciter_freq_hz = 130; o->exciter_drive = 0; o->exciter_mix = 0;
     o->stereo_width = 1.0f;
-    o->limiter_ceiling_db = -1.5f; o->limiter_release_ms = 120;
+    o->limiter_ceiling_db = -3.0f; o->limiter_release_ms = 120;
 
     switch (preset) {
     case AF_PRESET_VOICE:
