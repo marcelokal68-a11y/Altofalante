@@ -71,6 +71,7 @@ test-audio/   # amostras geradas (gitignored)
 ## Design & uso
 - Identidade visual e mockups: [`branding/`](branding/) (ver `brand-guide.md`).
 - Como usar o app, mexer no código e ensinar outros: [`docs/GUIA.md`](docs/GUIA.md).
+- Testar a sincronização multi-celular (passo a passo): [`docs/TESTE-MULTICELULAR.md`](docs/TESTE-MULTICELULAR.md).
 
 ## Roadmap
 

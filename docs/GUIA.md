@@ -83,6 +83,12 @@ mudar o número → medir → ouvir.
 
 ---
 
-## 6. Material de marca
+## 6. Testar com outro aparelho (multi-celular)
+Quer ver a sincronização funcionando? O passo a passo (segurando na mão) está em
+[`TESTE-MULTICELULAR.md`](TESTE-MULTICELULAR.md). Resumo honesto: hoje dá pra **provar
+a sincronia** (num computador, ou entre dois na mesma Wi-Fi); **ouvir** nos dois
+celulares depende da ponte nativa, que é o próximo marco.
+
+## 7. Material de marca
 Tudo em `branding/`: `logo.png`, `app-icon.png`, `mockup-home.png` e o
 `brand-guide.md` (cores, fontes, tom de voz). Use para posts, loja de apps e divulgação.

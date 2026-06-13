@@ -23,11 +23,19 @@
 using namespace af;
 using namespace af::net;
 
+// Interface de rede usada para o multicast de descoberta.
+// Padrao: loopback (testa tudo numa maquina). Para testar entre 2 computadores na
+// mesma Wi-Fi, defina AF_IFACE com o IP local da maquina, ex.: AF_IFACE=192.168.0.10
+static std::string iface() {
+    const char* e = getenv("AF_IFACE");
+    return (e && *e) ? std::string(e) : std::string(MCAST_IFACE);
+}
+
 static int runLeader(int expected, double theta) {
     UdpSocket data, ann;
     if (!data.open() || !data.bindPort(0)) { perror("leader data"); return 1; }
     if (!ann.open()) { perror("leader ann"); return 1; }
-    ann.setMulticastIface(MCAST_IFACE);
+    ann.setMulticastIface(iface());
     ann.enableMulticastLoop();
     uint16_t dataPort = data.localPort();
     Addr group = UdpSocket::makeAddr(MCAST_GROUP, MCAST_PORT);
@@ -78,7 +86,7 @@ static int runFollower(double theta, double latency,
                        const std::string& resultFile, int K) {
     // --- descoberta: ouve anuncios multicast do lider ---
     UdpSocket disc;
-    if (!disc.open() || !disc.joinMulticast(MCAST_GROUP, MCAST_PORT, MCAST_IFACE)) {
+    if (!disc.open() || !disc.joinMulticast(MCAST_GROUP, MCAST_PORT, iface())) {
         perror("follower multicast"); return 1;
     }
     Addr leader{}; bool found = false;
