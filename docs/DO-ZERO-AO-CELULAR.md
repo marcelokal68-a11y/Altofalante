@@ -74,6 +74,21 @@ multicast de loopback para a Wi-Fi (env `AF_IFACE` ou `MCAST_IFACE` em
 - Screenshots reais; **hospede `docs/privacidade.html`** e pegue a URL.
 - Textos: `docs/LOJAS.md`. Build de release assinado (certificado iOS / keystore Android).
 
+### 5b. Testar o "amplificar TUDO" num Android (gerar o APK)
+Esse recurso é Android e turbina o som de qualquer app (Spotify/YouTube). Para testar:
+```bash
+cd app
+flutter build apk --release
+# saída: build/app/outputs/flutter-apk/app-release.apk
+```
+Instale no aparelho:
+```bash
+adb install build/app/outputs/flutter-apk/app-release.apk
+# ou copie o .apk para o celular e abra (permita "instalar de fontes desconhecidas")
+```
+Depois: abra o app → ligue o **Turbo global** → toque algo no **Spotify/YouTube** e
+ouça mais alto. Se o aparelho bloquear a sessão global, o app cai para o player próprio.
+
 ### 6. Contas e publicação
 - **Apple Developer** (US$99/ano) e **Google Play** (US$25 única vez).
 - Suba os builds, preencha as listagens, envie para revisão.

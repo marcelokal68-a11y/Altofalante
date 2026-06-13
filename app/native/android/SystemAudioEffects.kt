@@ -10,14 +10,17 @@
 package com.altofalante.app
 
 import android.media.audiofx.BassBoost
+import android.media.audiofx.DynamicsProcessing
 import android.media.audiofx.Equalizer
 import android.media.audiofx.LoudnessEnhancer
+import android.os.Build
 
 /** Efeitos globais (sessão 0). Mapeia os mesmos presets do dsp-core. */
 class SystemAudioEffects {
     private var loudness: LoudnessEnhancer? = null
     private var bass: BassBoost? = null
     private var eq: Equalizer? = null
+    private var dp: DynamicsProcessing? = null // limitador (evita distorcer o boost)
     private var enabled = false
 
     // Presets: ganho de loudness (mB), força do grave (0..1000), realce de presença (mB).
@@ -36,6 +39,21 @@ class SystemAudioEffects {
         val p = presets[preset] ?: presets["balanced"]!!
         var ok = false
         try { loudness = LoudnessEnhancer(0).apply { setTargetGain(p.gainMb); enabled = true }; ok = true } catch (_: Throwable) {}
+        // Limitador true-peak-ish global: segura o boost antes de distorcer (API 28+).
+        try {
+            if (Build.VERSION.SDK_INT >= 28) {
+                val ch = 2
+                val cfg = DynamicsProcessing.Config.Builder(
+                    DynamicsProcessing.VARIANT_FAVOR_FREQUENCY_RESOLUTION, ch,
+                    false, 0, false, 0, false, 0, true
+                ).build()
+                dp = DynamicsProcessing(0, 0, cfg).apply {
+                    // Limiter(inUse, enabled, linkGroup, attack ms, release ms, ratio, threshold dB, postGain dB)
+                    setLimiterAllChannelsTo(DynamicsProcessing.Limiter(true, true, 0, 1f, 60f, 20f, -1f, 0f))
+                    enabled = true
+                }
+            }
+        } catch (_: Throwable) {}
         try { bass = BassBoost(0, 0).apply { if (strengthSupported) setStrength(p.bass); enabled = true } } catch (_: Throwable) {}
         try {
             eq = Equalizer(0, 0).apply {
@@ -66,6 +84,7 @@ class SystemAudioEffects {
         try { loudness?.release() } catch (_: Throwable) {}
         try { bass?.release() } catch (_: Throwable) {}
         try { eq?.release() } catch (_: Throwable) {}
-        loudness = null; bass = null; eq = null
+        try { dp?.release() } catch (_: Throwable) {}
+        loudness = null; bass = null; eq = null; dp = null
     }
 }
