@@ -28,15 +28,24 @@ true-peak ≤ -1 dBTP; testes passam.
 Ganho de +5 a +6.8 LU **sem clipping** (todos ≤ -1 dBTP). Os 3 testes de invariante
 passam. ✅ Prova de valor da Fase 1 concluída.
 
-## Fase 2 — Multi-celular
-- Protótipo de descoberta (mDNS) + sincronização de relógio + transporte por comando.
-- Medir defasagem entre dois nós.
-**Critério de saída:** dois nós tocam em sincronia com defasagem < 10 ms em LAN.
+## Fase 2 — Multi-celular  ◀ PROTÓTIPO CONCLUÍDO
+- [x] Estimativa de offset de relógio estilo NTP (filtro de menor atraso) — `sync-core/`.
+- [x] Agendador de início com compensação de latência de saída.
+- [x] Simulação medindo defasagem entre 4 nós (relógios ±50 s + jitter assimétrico).
+- [ ] Descoberta na rede (mDNS) e transporte real (próximo passo no device).
 
-## Fase 3 — App Flutter (no device)
-- Player de arquivos locais + tela única + presets + botão Turbo + A/B.
-- Integração do `dsp-core` via AVAudioEngine (iOS) e Oboe (Android).
-- Integração do módulo de sync.
+**Resultado medido** (`./build/sync-core/sync_sim`): defasagem máxima **3.06 ms**
+(meta < 10 ms) com erro de estimativa de offset < 0.3 ms. ✅
+
+**Critério de saída (no device):** dois aparelhos físicos tocam em sincronia com
+defasagem < 10 ms em LAN.
+
+## Fase 3 — App Flutter (no device)  ◀ ESQUELETO CONCLUÍDO
+- [x] Esqueleto do app: tela única (Turbo + presets + play), cliente do MethodChannel
+      (`app/lib/`), persistência de preset.
+- [ ] Gerar pastas nativas (`flutter create .`).
+- [ ] Cabear `dsp-core` via AVAudioEngine (iOS) e Oboe (Android) no MethodChannel.
+- [ ] Integração do módulo de sync.
 **Critério de saída:** build instalável; teste A/B audível no speaker real; sync entre
 2 aparelhos físicos.
 

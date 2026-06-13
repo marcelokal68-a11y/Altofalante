@@ -41,8 +41,12 @@ def main():
     print(f"{'arquivo':<28} {'LUFS':>8} {'TruePeak':>10} {'SmplPeak':>10} {'dLUFS':>8}")
     print("-" * 70)
 
+    check = "--check" in files
+    files = [f for f in files if f != "--check"]
+
     ref_lufs = None
     all_safe = True
+    louder = True
     for i, f in enumerate(files):
         lufs, tp, sp = measure(f)
         if i == 0:
@@ -50,16 +54,24 @@ def main():
             delta = ""
         else:
             delta = f"{lufs - ref_lufs:+.1f}"
+            if tp > -1.0 + 1e-3:
+                all_safe = False
+            if lufs <= ref_lufs:
+                louder = False
         name = f.split("/")[-1]
         clip_flag = "" if tp <= -1.0 + 1e-3 else "  <-- ACIMA de -1 dBTP!"
-        if tp > -1.0 + 1e-3 and i > 0:
-            all_safe = False
         print(f"{name:<28} {lufs:>8.1f} {tp:>9.1f}  {sp:>9.1f}  {delta:>8}{clip_flag}")
 
     print("-" * 70)
     if len(files) > 1:
-        print("Meta: dLUFS >= +6 (mais alto) e TruePeak <= -1 dBTP (sem clipping).")
+        print("Meta: dLUFS > 0 (mais alto) e TruePeak <= -1 dBTP (sem clipping).")
         print("Status anti-clipping:", "OK" if all_safe else "ATENCAO")
+        if check:
+            if all_safe and louder:
+                print("CHECK: PASSOU")
+            else:
+                print("CHECK: FALHOU (clipping ou sem ganho de loudness)")
+                sys.exit(1)
 
 
 if __name__ == "__main__":

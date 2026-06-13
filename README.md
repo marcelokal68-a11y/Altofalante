@@ -59,15 +59,20 @@ python3 tools/measure.py test-audio/sample.wav out.wav
 ```
 specs/        # spec-driven dev (visão, produto, arquitetura, DSP, sync, roadmap)
 dsp-core/     # motor de DSP em C++ (lib portátil) — o coração do produto
+sync-core/    # sincronização multi-celular em C++ + simulação (Fase 2)
 tools/        # harness de teste/medição (roda no PC/CI, sem device)
+app/          # esqueleto do app Flutter (Fase 3 — UI + ponte nativa)
 test-audio/   # amostras geradas (gitignored)
-app/          # app Flutter (Fase 3 — ainda não criado)
+.github/      # CI (build + testes + prova de valor a cada push)
 ```
 
 ## Roadmap
 
-- **Fase 1 — DSP + prova de valor** ✅ (este commit)
-- **Fase 2 — Multi-celular sincronizado** (descoberta na rede, sync de relógio)
-- **Fase 3 — App Flutter** (player + UI minimalista + integração nativa do DSP)
+- **Fase 1 — DSP + prova de valor** ✅ — loudness +5 a +6.8 LU sem clipping.
+- **Fase 2 — Multi-celular sincronizado** ✅ protótipo — defasagem **3 ms** na
+  simulação (meta < 10 ms), mesmo com relógios ±50 s e jitter de rede. Rode
+  `./build/sync-core/sync_sim`.
+- **Fase 3 — App Flutter** 🚧 esqueleto pronto em [`app/`](app/) (tela única + ponte
+  para o motor nativo); falta gerar as pastas nativas e cabear AVAudioEngine/Oboe.
 
 Ver [`specs/05-roadmap.md`](specs/05-roadmap.md).

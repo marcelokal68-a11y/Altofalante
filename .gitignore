@@ -11,3 +11,17 @@ test-audio/sample.wav
 __pycache__/
 *.pyc
 .venv/
+
+# Flutter (pastas geradas por `flutter create` / build)
+app/.dart_tool/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/ios/
+app/android/
+app/linux/
+app/macos/
+app/windows/
+app/web/
+app/.idea/
+app/*.iml

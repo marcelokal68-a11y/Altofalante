@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  dsp-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar toolchain
+        run: sudo apt-get update && sudo apt-get install -y cmake g++
+
+      - name: Compilar (dsp-core + tools)
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j
+
+      - name: Testes de invariante do DSP
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Simulacao de sincronizacao multi-celular
+        run: ./build/sync-core/sync_sim
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Deps de medicao
+        run: pip install numpy soundfile pyloudnorm scipy
+
+      - name: Prova de valor (loudness sem clipping)
+        run: |
+          python3 tools/gen_test_audio.py
+          mkdir -p test-audio/out
+          for p in voice balanced bass party portable; do
+            ./build/tools/process_wav test-audio/sample.wav "test-audio/out/$p.wav" "$p"
+          done
+          python3 tools/measure.py --check test-audio/sample.wav \
+            test-audio/out/voice.wav test-audio/out/balanced.wav \
+            test-audio/out/bass.wav test-audio/out/party.wav \
+            test-audio/out/portable.wav

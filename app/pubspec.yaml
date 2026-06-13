@@ -1,0 +1,21 @@
+name: altofalante
+description: "Transforme seu celular numa caixa de som — amplificacao de audio com qualidade."
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  file_picker: ^8.0.0      # escolher arquivo de audio local
+  shared_preferences: ^2.2.0  # persistir ultimo preset (RF5)
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
