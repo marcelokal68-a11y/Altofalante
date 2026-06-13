@@ -3,9 +3,9 @@ build/
 *.o
 *.a
 
-# Audio de saida gerado
+# Audio gerado (criado por tools/gen_test_audio.py)
 test-audio/out/
-test-audio/sample.wav
+test-audio/*.wav
 
 # Python
 __pycache__/
