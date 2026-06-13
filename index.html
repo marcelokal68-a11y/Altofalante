@@ -111,7 +111,11 @@ function ensureCtx(){
   built=true;
   // iOS: desbloqueia o audio tocando um buffer silencioso no primeiro gesto
   try{ const u=ctx.createBufferSource(); u.buffer=ctx.createBuffer(1,1,22050); u.connect(ctx.destination); u.start(0); }catch(e){}
-  if(!queue.length){ queue=[{name:'Demonstração (Altofalante)', buffer:makeDemo()}]; renderMeta(); }
+  if(!queue.length){ queue=[
+    {name:'Demo • Pop', buffer:makeDemo('music')},
+    {name:'Demo • Grave / Eletrônica', buffer:makeDemo('bass')},
+    {name:'Demo • Voz / Podcast', buffer:makeDemo('voice')},
+  ]; renderMeta(); }
   applyPreset();
 }
 function exciterCurve(a){ const n=1024,c=new Float32Array(n),k=1+a*4; for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(k*x)/Math.tanh(k);} return c; }
@@ -126,15 +130,24 @@ function applyPreset(){
 function applyTurbo(){ if(!built)return; const P=PRESETS[preset];
   if(turbo){ makeup.gain.value=db(P.mk-6); dry.gain.value=0; } else { makeup.gain.value=0; dry.gain.value=1; } }
 
-// demo sintetizada (sempre disponivel) — melodia + baixo + chimbal
-function makeDemo(){
+// faixas-demo sintetizadas (sempre disponiveis) em estilos diferentes
+function makeDemo(kind){
   const sr=ctx.sampleRate, dur=8, n=sr*dur, buf=ctx.createBuffer(2,n,sr);
   const bass=[65.4,98,110,87.3], mel=[329.6,392,440,392,329.6,293.7,261.6,392];
   for(let c=0;c<2;c++){ const d=buf.getChannelData(c);
-    for(let i=0;i<n;i++){ const t=i/sr, beat=Math.floor(t/0.5)%8, bf=bass[Math.floor(t/1)%4];
-      let s=0.5*Math.sin(2*Math.PI*bf*t)*Math.exp(-(t%1)*1.1);
-      s+=0.25*((2/Math.PI)*Math.asin(Math.sin(2*Math.PI*mel[beat]*t)))*Math.exp(-(t%0.5)*2.5);
-      if((i%(sr/2))<160) s+=0.12*(Math.random()*2-1)*Math.exp(-(i%(sr/2))/50);
+    for(let i=0;i<n;i++){ const t=i/sr; let s=0;
+      if(kind==='voice'){
+        const f0=220+15*Math.sin(2*Math.PI*0.7*t), trem=0.7+0.3*Math.sin(2*Math.PI*4*t);
+        s=0.5*Math.tanh(2.5*(Math.sin(2*Math.PI*f0*t)+0.9*Math.sin(2*Math.PI*2*f0*t)+0.7*Math.sin(2*Math.PI*3*f0*t))*trem);
+      } else if(kind==='bass'){
+        const k=i%Math.floor(sr*0.5), env=Math.exp(-k/(sr*0.06));
+        s=0.8*Math.sin(2*Math.PI*50*t)*(0.2+0.8*env)+0.4*Math.sin(2*Math.PI*80*t)*(0.3+0.7*env)+0.05*Math.sin(2*Math.PI*400*t);
+      } else {
+        const beat=Math.floor(t/0.5)%8, bf=bass[Math.floor(t/1)%4];
+        s=0.5*Math.sin(2*Math.PI*bf*t)*Math.exp(-(t%1)*1.1);
+        s+=0.25*((2/Math.PI)*Math.asin(Math.sin(2*Math.PI*mel[beat]*t)))*Math.exp(-(t%0.5)*2.5);
+        if((i%(sr/2))<160) s+=0.12*(Math.random()*2-1)*Math.exp(-(i%(sr/2))/50);
+      }
       d[i]=s*0.55;
     }
   }
