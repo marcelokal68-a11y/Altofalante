@@ -18,7 +18,7 @@
   .art{width:54px;height:54px;border-radius:14px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:24px}
   .now .t{font-size:16px;font-weight:700;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .now .s{font-size:12.5px;color:var(--muted);margin-top:2px}
-  .turbowrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:300px}
+  .turbowrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:280px}
   .turbo{width:200px;height:200px;border-radius:50%;background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:.25s;border:none}
   .turbo.on{background:var(--grad);box-shadow:0 0 55px rgba(236,72,153,.55)}
   .eq{display:flex;align-items:center;gap:6px;height:74px}
@@ -36,8 +36,8 @@
   .ctrls{display:flex;align-items:center;justify-content:center;gap:22px;margin-top:22px}
   .skip{font-size:30px;color:var(--muted);cursor:pointer;background:none;border:none}
   .play{width:78px;height:78px;border-radius:50%;background:#fff;border:none;color:#0A0A0F;font-size:34px;cursor:pointer}
-  .note{color:var(--muted);font-size:11px;text-align:center;margin-top:18px}
-  #install{display:none;margin:14px auto 0;background:var(--surface2);border:1px solid #33333f;color:var(--text);border-radius:999px;padding:9px 18px;font-weight:700;cursor:pointer}
+  .note{color:var(--muted);font-size:11px;text-align:center;margin-top:16px}
+  #install{display:none;margin:12px auto 0;background:var(--surface2);border:1px solid #33333f;color:var(--text);border-radius:999px;padding:9px 18px;font-weight:700;cursor:pointer}
 </style>
 </head>
 <body>
@@ -49,8 +49,8 @@
   <div class="now" onclick="pick()">
     <div class="art">🎵</div>
     <div>
-      <div class="t" id="title">Toque para escolher músicas</div>
-      <div class="s" id="sub">sua biblioteca</div>
+      <div class="t" id="title">Demonstração (toque ▶)</div>
+      <div class="s" id="sub">toque aqui para escolher suas músicas</div>
     </div>
   </div>
 
@@ -78,125 +78,133 @@
   </div>
 
   <button id="install" onclick="doInstall()">⬇️ instalar no celular</button>
-  <div class="note">Toque junto com outros celulares está disponível no app nativo.</div>
+  <div class="note">Pressione ▶ para ouvir a demonstração. "Tocar junto" (multi-celular) é do app nativo.</div>
 
   <input type="file" id="file" accept="audio/*" multiple style="display:none">
-  <audio id="player" crossorigin="anonymous"></audio>
 
 <script>
 // ===== Presets (espelham dsp-core/src/presets.cpp, adaptados ao WebAudio) =====
 const PRESETS = {
-  voice:    {gain:8, hpf:120, p1:[300,-2,1],   p2:[3000,4,1],   comp:[-24,3,0.005,0.12], ex:0.0,  mk:4},
-  balanced: {gain:8, hpf:80,  p1:[300,-1.5,1], p2:[4000,3,0.9], comp:[-22,2.5,0.01,0.13],ex:0.25, mk:4},
-  bass:     {gain:9, hpf:70,  p1:[120,3,0.8],  p2:[5000,2.5,0.9],comp:[-22,2.7,0.008,0.12],ex:0.4, mk:5},
+  voice:    {gain:8, hpf:120, p1:[300,-2,1],   p2:[3000,4,1],    comp:[-24,3,0.005,0.12], ex:0.0,  mk:4},
+  balanced: {gain:8, hpf:80,  p1:[300,-1.5,1], p2:[4000,3,0.9],  comp:[-22,2.5,0.01,0.13],ex:0.25, mk:4},
+  bass:     {gain:9, hpf:70,  p1:[120,3,0.8],  p2:[5000,2.5,0.9],comp:[-22,2.7,0.008,0.12],ex:0.4,  mk:5},
   party:    {gain:12,hpf:90,  p1:[250,-2,1],   p2:[4000,3.5,0.9],comp:[-28,4,0.003,0.09], ex:0.35, mk:8},
-  portable: {gain:9, hpf:100, p1:[150,3,0.7],  p2:[6000,4,0.7], comp:[-22,2.5,0.008,0.11],ex:0.35, mk:5},
+  portable: {gain:9, hpf:100, p1:[150,3,0.7],  p2:[6000,4,0.7],  comp:[-22,2.5,0.008,0.11],ex:0.35, mk:5},
 };
 const db = v => Math.pow(10, v/20);
 
-let ctx, srcNode, inGain, hpf, pk1, pk2, comp, shaper, limiter, makeup, built=false;
-let turbo=true, preset='balanced', queue=[], qi=0, playing=false;
-const player = document.getElementById('player');
+let ctx, inGain, hpf, pk1, pk2, comp, shaper, limiter, makeup, dry, out, built=false;
+let turbo=true, preset='balanced', queue=[], qi=0, src=null, playing=false, startedAt=0, offset=0, endGuard=false;
 
-function buildGraph(){
-  if(built) return;
+function ensureCtx(){
+  if(ctx) return;
   ctx = new (window.AudioContext||window.webkitAudioContext)();
-  srcNode = ctx.createMediaElementSource(player);
-  inGain = ctx.createGain();
-  hpf = ctx.createBiquadFilter(); hpf.type='highpass';
-  pk1 = ctx.createBiquadFilter(); pk1.type='peaking';
-  pk2 = ctx.createBiquadFilter(); pk2.type='peaking';
-  comp = ctx.createDynamicsCompressor();
-  shaper = ctx.createWaveShaper();
-  limiter = ctx.createDynamicsCompressor();
-  limiter.threshold.value=-2; limiter.ratio.value=20; limiter.attack.value=0.001; limiter.release.value=0.05; limiter.knee.value=0;
-  makeup = ctx.createGain();
-  srcNode.connect(inGain); inGain.connect(hpf); hpf.connect(pk1); pk1.connect(pk2);
-  pk2.connect(comp); comp.connect(shaper); shaper.connect(limiter); limiter.connect(makeup);
+  inGain=ctx.createGain(); hpf=ctx.createBiquadFilter(); hpf.type='highpass';
+  pk1=ctx.createBiquadFilter(); pk1.type='peaking';
+  pk2=ctx.createBiquadFilter(); pk2.type='peaking';
+  comp=ctx.createDynamicsCompressor(); shaper=ctx.createWaveShaper();
+  limiter=ctx.createDynamicsCompressor(); limiter.threshold.value=-2; limiter.ratio.value=20; limiter.attack.value=0.001; limiter.release.value=0.05; limiter.knee.value=0;
+  makeup=ctx.createGain(); dry=ctx.createGain(); out=ctx.createGain();
+  inGain.connect(hpf); hpf.connect(pk1); pk1.connect(pk2); pk2.connect(comp);
+  comp.connect(shaper); shaper.connect(limiter); limiter.connect(makeup); makeup.connect(out);
+  dry.connect(out); out.connect(ctx.destination);
   built=true;
-  applyChain();
+  if(!queue.length){ queue=[{name:'Demonstração (Altofalante)', buffer:makeDemo()}]; renderMeta(); }
+  applyPreset();
 }
-function exciterCurve(amount){
-  const n=1024, c=new Float32Array(n), k=1+amount*4;
-  for(let i=0;i<n;i++){ const x=i/(n-1)*2-1; c[i]=Math.tanh(k*x)/Math.tanh(k); }
-  return c;
-}
-function applyChain(){
-  if(!built) return;
-  if(!turbo){ // bypass
-    try{srcNode.disconnect();}catch(e){} srcNode.connect(ctx.destination);
-    return;
-  }
-  try{srcNode.disconnect();}catch(e){} srcNode.connect(inGain);
-  try{makeup.disconnect();}catch(e){} makeup.connect(ctx.destination);
-  const P=PRESETS[preset];
-  inGain.gain.value=db(P.gain);
-  hpf.frequency.value=P.hpf||10;
+function exciterCurve(a){ const n=1024,c=new Float32Array(n),k=1+a*4; for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(k*x)/Math.tanh(k);} return c; }
+function applyPreset(){
+  if(!built) return; const P=PRESETS[preset];
+  inGain.gain.value=db(P.gain); hpf.frequency.value=P.hpf||10;
   pk1.frequency.value=P.p1[0]; pk1.gain.value=P.p1[1]; pk1.Q.value=P.p1[2];
   pk2.frequency.value=P.p2[0]; pk2.gain.value=P.p2[1]; pk2.Q.value=P.p2[2];
   comp.threshold.value=P.comp[0]; comp.ratio.value=P.comp[1]; comp.attack.value=P.comp[2]; comp.release.value=P.comp[3]; comp.knee.value=6;
-  shaper.curve=exciterCurve(P.ex);
-  makeup.gain.value=db(P.mk - 6); // -6 de margem para o limitador/headroom
+  shaper.curve=exciterCurve(P.ex); applyTurbo();
+}
+function applyTurbo(){ if(!built)return; const P=PRESETS[preset];
+  if(turbo){ makeup.gain.value=db(P.mk-6); dry.gain.value=0; } else { makeup.gain.value=0; dry.gain.value=1; } }
+
+// demo sintetizada (sempre disponivel) — melodia + baixo + chimbal
+function makeDemo(){
+  const sr=ctx.sampleRate, dur=8, n=sr*dur, buf=ctx.createBuffer(2,n,sr);
+  const bass=[65.4,98,110,87.3], mel=[329.6,392,440,392,329.6,293.7,261.6,392];
+  for(let c=0;c<2;c++){ const d=buf.getChannelData(c);
+    for(let i=0;i<n;i++){ const t=i/sr, beat=Math.floor(t/0.5)%8, bf=bass[Math.floor(t/1)%4];
+      let s=0.5*Math.sin(2*Math.PI*bf*t)*Math.exp(-(t%1)*1.1);
+      s+=0.25*((2/Math.PI)*Math.asin(Math.sin(2*Math.PI*mel[beat]*t)))*Math.exp(-(t%0.5)*2.5);
+      if((i%(sr/2))<160) s+=0.12*(Math.random()*2-1)*Math.exp(-(i%(sr/2))/50);
+      d[i]=s*0.55;
+    }
+  }
+  return buf;
 }
 
-// ===== transporte / fila =====
-function pick(){ document.getElementById('file').click(); }
-document.getElementById('file').addEventListener('change', e=>{
-  const files=[...e.target.files]; if(!files.length) return;
-  queue=files.map(f=>({name:f.name.replace(/\.[^.]+$/,''), url:URL.createObjectURL(f), file:f}));
-  qi=0; load();
-});
-function load(){
-  if(!queue.length) return;
-  player.src=queue[qi].url;
-  document.getElementById('title').textContent=queue[qi].name;
-  document.getElementById('sub').textContent='faixa '+(qi+1)+' de '+queue.length;
+// ===== transporte (AudioBufferSource — robusto) =====
+function startSource(off){
+  src=ctx.createBufferSource(); src.buffer=queue[qi].buffer;
+  src.connect(inGain); src.connect(dry);
+  endGuard=false;
+  src.onended=()=>{ if(!endGuard){ playing=false; next(true); } };
+  startedAt=ctx.currentTime; src.start(0, off||0);
 }
+function stopSource(){ if(src){ endGuard=true; try{src.stop();}catch(e){} try{src.disconnect();}catch(e){} src=null; } }
+
 async function togglePlay(){
-  if(!queue.length) return pick();
-  buildGraph(); if(ctx.state==='suspended') await ctx.resume();
-  if(playing){ player.pause(); } else { await player.play(); }
-  playing=!playing; render();
+  ensureCtx(); if(ctx.state==='suspended'){ try{await ctx.resume();}catch(e){} }
+  if(playing){ offset += ctx.currentTime-startedAt; stopSource(); playing=false; }
+  else { offset = offset || 0; startSource(offset); playing=true; }
+  render();
 }
-function next(){ if(!queue.length)return; if(qi<queue.length-1){qi++; load(); if(playing)player.play();} }
-function prev(){ if(!queue.length)return; qi=qi>0?qi-1:0; load(); if(playing)player.play(); }
-player.addEventListener('ended', next);
+function next(auto){ if(!queue.length)return; stopSource(); offset=0; qi=(qi+1)%queue.length; renderMeta();
+  if(playing||auto){ ensureCtx(); startSource(0); playing=true; } render(); }
+function prev(){ if(!queue.length)return; stopSource(); offset=0; qi=(qi-1+queue.length)%queue.length; renderMeta();
+  if(playing){ startSource(0); } render(); }
 
-function toggleTurbo(){ turbo=!turbo; applyChain(); render(); }
-function selPreset(el){ preset=el.dataset.p; document.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel')); el.classList.add('sel'); applyChain(); }
+function toggleTurbo(){ turbo=!turbo; applyTurbo(); render(); }
+function selPreset(el){ preset=el.dataset.p; document.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel')); el.classList.add('sel'); applyPreset(); }
+
+// ===== escolher musicas (decodifica para buffers) =====
+function pick(){ document.getElementById('file').click(); }
+document.getElementById('file').addEventListener('change', async e=>{
+  const files=[...e.target.files]; if(!files.length) return;
+  ensureCtx(); if(ctx.state==='suspended'){ try{await ctx.resume();}catch(_){} }
+  document.getElementById('sub').textContent='carregando…';
+  const items=[];
+  for(const f of files){
+    try{ const b=await ctx.decodeAudioData(await f.arrayBuffer());
+      items.push({name:f.name.replace(/\.[^.]+$/,''), buffer:b}); }catch(_){}
+  }
+  if(!items.length){ document.getElementById('sub').textContent='não consegui ler esses arquivos'; return; }
+  stopSource(); queue=items; qi=0; offset=0; playing=false; renderMeta(); render();
+});
 
 // ===== EQ inteligente (mesma heuristica do dsp-core) =====
-async function autoPreset(){
-  if(!queue.length) return;
-  const buf=await queue[qi].file.arrayBuffer();
-  const ac=new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1,44100,44100);
-  const ab=await ac.decodeAudioData(buf);
-  const d=ab.getChannelData(0), sr=ab.sampleRate;
-  // bandas via one-pole simples + crista
-  let lo=0,mid=0,hi=0,sq=0,peak=0, lp=0, hp=0;
+function autoPreset(){
+  ensureCtx(); const b=queue[qi] && queue[qi].buffer; if(!b) return;
+  const d=b.getChannelData(0), sr=b.sampleRate;
+  let lo=0,mid=0,hi=0,sq=0,peak=0,lp=0,hp=0;
   const aL=Math.exp(-2*Math.PI*200/sr), aH=Math.exp(-2*Math.PI*3000/sr);
   for(let i=0;i<d.length;i+=2){ const x=d[i];
-    lp=aL*lp+(1-aL)*x; const low=lp; const up=x-lp; hp=aH*hp+(1-aH)*up; const high=up-hp; const md=up-high;
-    lo+=low*low; mid+=md*md; hi+=high*high; sq+=x*x; const a=Math.abs(x); if(a>peak)peak=a;
+    lp=aL*lp+(1-aL)*x; const up=x-lp; hp=aH*hp+(1-aH)*up; const high=up-hp, md=up-high;
+    lo+=lp*lp; mid+=md*md; hi+=high*high; sq+=x*x; const a=Math.abs(x); if(a>peak)peak=a;
   }
   const sum=lo+mid+hi||1e-9, L=lo/sum,M=mid/sum,H=hi/sum;
-  const rms=Math.sqrt(sq/(d.length/2)); const crest=20*Math.log10((peak+1e-9)/(rms+1e-9));
+  const rms=Math.sqrt(sq/(d.length/2)), crest=20*Math.log10((peak+1e-9)/(rms+1e-9));
   let p='balanced';
-  if(L>0.5) p=crest>12?'party':'bass';
-  else if(M>0.55&&H<0.20&&crest<10) p='voice';
-  else if(H>0.28) p='portable';
-  preset=p;
-  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('sel',c.dataset.p===p));
-  applyChain();
+  if(L>0.5) p=crest>12?'party':'bass'; else if(M>0.55&&H<0.20&&crest<10) p='voice'; else if(H>0.28) p='portable';
+  preset=p; document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('sel',c.dataset.p===p)); applyPreset();
 }
 
+function renderMeta(){
+  document.getElementById('title').textContent=queue[qi]?queue[qi].name:'—';
+  document.getElementById('sub').textContent=queue.length>1?('faixa '+(qi+1)+' de '+queue.length):'toque no topo para escolher suas músicas';
+}
 function render(){
   document.getElementById('turbo').classList.toggle('on',turbo);
   document.getElementById('turboLbl').textContent='TURBO '+(turbo?'ON':'OFF');
   document.getElementById('playBtn').textContent=playing?'⏸':'▶';
 }
 
-// ===== PWA: service worker + instalacao =====
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 let deferred;
 window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferred=e; document.getElementById('install').style.display='block'; });
